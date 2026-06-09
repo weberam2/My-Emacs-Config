@@ -3,16 +3,6 @@
 ;;;   Basic settings for quick startup and convenience
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; save history
-(use-package savehist
-  :init
-  (savehist-mode 1)
-  :custom
-  (history-length 10000)
-  (savehist-additional-variables
-   '(kill-ring
-     search-ring
-     regexp-search-ring)))
 
 ;; Startup speed, annoyance suppression
 (setq gc-cons-threshold 10000000)
@@ -54,13 +44,11 @@
 
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
-
 (setq inhibit-startup-screen t)
-
+(setq-default
+ display-line-numbers-type 'relative)
 (global-display-line-numbers-mode)
-
 (column-number-mode)
-
 (setq ring-bell-function 'ignore)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,6 +100,19 @@
 
 (setq straight-use-package-by-default t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; save history
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package savehist
+  :init
+  (savehist-mode 1)
+  :custom
+  (history-length 10000)
+  (savehist-additional-variables
+   '(kill-ring
+     search-ring
+     regexp-search-ring)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpful keybinding hints
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -141,7 +142,7 @@
 (use-package consult)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Avy - jump around
+;; Avy - jump around text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package avy)
 (require 'avy)
@@ -591,10 +592,6 @@ count only within it."
 (global-set-key
  (kbd "C-x g")
  #'magit-status)
-
-(global-set-key
- (kbd "C-c c")
- #'compile)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode
