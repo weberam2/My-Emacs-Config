@@ -163,30 +163,182 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpful keybinding hints
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq which-key-idle-delay 0.01)
 
 (use-package which-key
   :config
   (which-key-mode))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Completion framework
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Rainbow delimiters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
 
-(use-package vertico
-  :init
-  (vertico-mode))
-(with-eval-after-load 'vertico
-  (define-key vertico-map (kbd "DEL") #'vertico-directory-delete-char))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; God mode
+;; g is Meta
+;; . is repeat
+;; The literal key (SPC) is sticky.
+;; This means you don't have to enter SPC repeatedly for key bindings such as C-x r t.
+;; Entering the literal key again toggles its state.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (setq god-mode-enable-function-key-translation nil) ;; function keys remain function keys
+;; (use-package god-mode)
+;; (god-mode) ;; activate god mode
+;; (global-set-key (kbd "<escape>") #'god-local-mode)
+;; (custom-set-faces
+;;  '(god-mode-lighter ((t (:inherit error)))))
+;; (defun my-god-mode-update-cursor-type ()
+;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+;; (define-key god-local-mode-map (kbd ".") #'repeat)
+;; (define-key god-local-mode-map (kbd "i") #'god-local-mode)
+;; (global-set-key (kbd "<escape>") #'(lambda () (interactive) (god-local-mode 1)))
+;; (which-key-enable-god-mode-support)
 
-(use-package orderless
-  :custom
-  (completion-styles '(orderless basic)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Hydra
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package hydra)
 
-(use-package marginalia
-  :init
-  (marginalia-mode))
+;; Outline 
+(defhydra hydra-outline (:color pink :hint nil)
+  "
+^Navigate^              ^Visibility^           ^Structure^
+^^^^^^^^----------------------------------------------------------------
+_n_: next heading       _TAB_: cycle           _h_: promote
+_p_: prev heading       _a_: show all          _l_: demote
+_f_: forward same lvl   _s_: show subtree      _k_: move up
+_b_: backward same lvl  _h_: hide subtree      _j_: move down
+_u_: up heading         _d_: hide body         _/_: insert heading
+^ ^                     _q_: hide leaves
+^^^^^^^^----------------------------------------------------------------
+_<ESC>_: quit
+"
+  ;; Navigate
+  ("n" outline-next-visible-heading)
+  ("p" outline-previous-visible-heading)
+  ("f" outline-forward-same-level)
+  ("b" outline-backward-same-level)
+  ("u" outline-up-heading)
 
-(use-package consult)
+  ;; Visibility
+  ("TAB" outline-toggle-children)
+  ("a" outline-show-all)
+  ("s" outline-show-subtree)
+  ("h" outline-hide-subtree)
+  ("d" outline-hide-body)
+  ("q" outline-hide-leaves)
+
+  ;; Structure
+  ("h" outline-promote)
+  ("l" outline-demote)
+  ("k" outline-move-subtree-up)
+  ("j" outline-move-subtree-down)
+  ("/" outline-insert-heading)
+
+  ("<ESC>" nil :exit t))
+
+;; Bind the hydra — pick whichever key you prefer
+(global-set-key (kbd "C-c o") 'hydra-outline/body)
+
+;; Window Management
+(winner-mode 1)
+
+(defun ace-maximize-window ()
+  "Toggle between maximizing the current window and restoring previous layout."
+  (interactive)
+  (if (one-window-p)
+      (winner-undo)
+    (delete-other-windows)))
+
+(defun hydra-move-splitter-left (arg)
+  (interactive "p")
+  (if (window-in-direction 'right)
+      (enlarge-window-horizontally (- arg))
+    (enlarge-window-horizontally arg)))
+
+(defun hydra-move-splitter-down (arg)
+  (interactive "p")
+  (if (window-in-direction 'up)
+      (enlarge-window arg)
+    (shrink-window arg)))
+
+(defun hydra-move-splitter-up (arg)
+  (interactive "p")
+  (if (window-in-direction 'down)
+      (enlarge-window arg)
+    (shrink-window arg)))
+
+(defun hydra-move-splitter-right (arg)
+  (interactive "p")
+  (if (window-in-direction 'right)
+      (enlarge-window-horizontally arg)
+    (enlarge-window-horizontally (- arg))))
+
+(defhydra hydra-window ()
+  "
+Movement^^        ^Split^         ^Switch^		^Resize^
+----------------------------------------------------------------
+_h_ ←       	_\\_ vertical    _b_uffer		_H_ X←
+_j_ ↓        	_-_ horizontal	_f_ind files	_J_ X↓
+_k_ ↑        	_z_ undo      	_a_ce 1		_K_ X↑
+_l_ →        	_Z_ reset      	_s_wap		_L_ X→
+_F_ollow		_D_lt Other   	_S_ave		max_i_mize
+_SPC_ cancel	_o_nly this   	_d_elete	
+"
+  ("h" windmove-left )
+  ("j" windmove-down )
+  ("k" windmove-up )
+  ("l" windmove-right )
+  ("H" hydra-move-splitter-left)
+  ("J" hydra-move-splitter-down)
+  ("K" hydra-move-splitter-up)
+  ("L" hydra-move-splitter-right)
+  ("b" switch-to-buffer)     ;; Replaced helm-mini with built-in
+  ("f" find-file)            ;; Replaced helm-find-files with built-in
+  ("F" follow-mode)
+  ("a" (lambda ()
+         (interactive)
+         (ace-window 1)
+         (add-hook 'ace-window-end-once-hook
+                   'hydra-window/body))
+   )
+  ("\\" (lambda ()
+          (interactive)
+          (split-window-right)
+          (windmove-right))
+   )
+  ("-" (lambda ()
+         (interactive)
+         (split-window-below)
+         (windmove-down))
+   )
+  ("s" (lambda ()
+         (interactive)
+         (ace-window 4)
+         (add-hook 'ace-window-end-once-hook
+                   'hydra-window/body)))
+  ("S" save-buffer)
+  ("d" delete-window)
+  ("D" (lambda ()
+         (interactive)
+         (ace-window 16)
+         (add-hook 'ace-window-end-once-hook
+                   'hydra-window/body))
+   )
+  ("o" delete-other-windows)
+  ("i" ace-maximize-window)
+  ("z" (progn
+         (winner-undo)
+         (setq this-command 'winner-undo))
+   )
+  ("Z" winner-redo)
+  ("SPC" nil)
+  )
+
+(global-set-key (kbd "C-c b") 'hydra-window/body)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Avy - jump around text
