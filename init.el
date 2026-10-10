@@ -24,24 +24,21 @@
 (setopt inhibit-splash-screen t)
 (setopt make-backup-files nil)
 (setopt create-lockfiles nil)
-
+(setopt use-short-answers t) ; answer with y or n
 (setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
 (setopt display-time-default-load-average nil) ; this information is useless for most
 
-;; (global-set-key (kbd "<escape>") 'keyboard-quit)  ;; escape as C-g
-
 ;; theme
-(load-theme 'modus-operandi t)
+;; (load-theme 'modus-operandi t)
+(load-theme 'modus-vivendi t)
 
 ;; Package initialization
-
 (with-eval-after-load 'package
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General appearance
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
 (setq inhibit-startup-screen t)
