@@ -961,37 +961,28 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
     (when-let ((black-executable (pet-executable-find "black")))
       (setq-local python-black-command black-executable))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Virtual environments
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package pyvenv
   :config
   (pyvenv-mode))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Jupyter support
-;;
-;; Run:
-;;
 ;; M-x jupyter-run-repl
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package jupyter)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; R support
-;;
 ;; ESS is the gold standard for R in Emacs.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package ess)
+
+;; R markdown
+(use-package poly-R
+  :mode ("\\.[rR]md\\'" . poly-gfm+r-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Markdown mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package markdown-mode
   :mode ("\\.qmd\\'" . markdown-mode))
 
