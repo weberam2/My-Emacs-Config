@@ -1008,48 +1008,31 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
 ;; max image size
 (setq markdown-max-image-size '(500 . 300))
 
-;; word count
-;; (defun my/count-words-qmd ()
-;;   "Count words in a Quarto buffer, excluding YAML front matter,
-;; markdown tables, images, lines starting with ':', inline
-;; citations (@), and everything from '# References {.unnumbered}'
-;; onward. If a region is active, count only within it."
-;;   (interactive)
-;;   (let ((start (cond
-;;                 ((use-region-p) (region-beginning))
-;;                 ((save-excursion
-;;                    (goto-char (point-min))
-;;                    (looking-at "---"))
-;;                  (save-excursion
-;;                    (goto-char (point-min))
-;;                    (forward-line 1)
-;;                    (if (re-search-forward "^---" nil t)
-;;                        (line-beginning-position 2)
-;;                      (point-min))))
-;;                 (t (point-min))))
-;;         (end (if (use-region-p) (region-end) (point-max))))
-;;     (let ((count 0)
-;;           (done nil))
-;;       (save-excursion
-;;         (goto-char start)
-;;         (while (and (not done) (< (point) end))
-;;           (if (and (not (use-region-p))
-;;                    (looking-at "^# References {.unnumbered}"))
-;;               (setq done t)
-;;             (if (looking-at (rx (or (: bol "|")
-;;                                     (: bol "![")
-;;                                     (: bol ":")
-;;                                     (: bol "<")
-;;                                     (: bol "{"))))
-;;                 (forward-line 1)
-;;               (let* ((line-end (min (line-beginning-position 2) end))
-;;                      (line (buffer-substring-no-properties (point) line-end))
-;;                      (cleaned (replace-regexp-in-string "\\[\\?@[^]]+\\]\\|@[[:alnum:]_-]+" "" line)))
-;;                 (with-temp-buffer
-;;                   (insert cleaned)
-;;                   (setq count (+ count (count-words-region (point-min) (point-max)))))
-;;                 (goto-char line-end))))))
-;;       (message "Word count: %d" count))))
+;; Markdown face definitions
+(defface my-markdown-citation-face
+  '((t (:foreground "#F54927"
+                    :weight bold)))
+  "Face used for Pandoc citations.")
+(font-lock-add-keywords
+ 'markdown-mode
+ '(("\\(\\[@[^]]+\\]\\)"
+    1 'my-markdown-citation-face t)))
+
+;; Math preview
+(use-package math-preview)
+;; (add-hook 'markdown-mode-hook
+;;           (lambda ()
+;;             (when (and buffer-file-name
+;;                        (string-match-p "\\.qmd\\'" buffer-file-name))
+;;               (math-preview-all))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Quarto
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; https://gist.github.com/fast-90/3d7ce3252fff59b0f6d6d1bcadcf4938
+(use-package quarto-mode
+  :bind (:map poly-quarto-mode-map
+              ("C-c q p" . quarto-preview)))
 
 (defun my/count-words-qmd ()
   "Count words in a Quarto buffer, excluding YAML front matter,
