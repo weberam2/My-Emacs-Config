@@ -1113,33 +1113,25 @@ count only within it."
 ;;
 ;; Provides proper editing of code chunks inside qmd files.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package polymode)
-
 (use-package poly-markdown)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; YAML support
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package yaml-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; JSON support
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package json-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Citations
 ;;
 ;; Works beautifully with BetterBibTeX + Zotero.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package citar
   :custom
   (citar-bibliography
    '("~/references/references.bib")))
+
+;; Insert citations with C-c ]
+(with-eval-after-load 'markdown-mode
+  (define-key markdown-mode-map
+              (kbd "C-c ]")
+              #'citar-insert-citation))
+
 
 (defun my/qmd-bibliography ()
   "Extract bibliography paths from Quarto YAML front matter."
