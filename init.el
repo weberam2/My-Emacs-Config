@@ -119,6 +119,34 @@
 
 (setq straight-use-package-by-default t)
 
+;; Whole line or region (better C-w)
+(use-package whole-line-or-region)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Completion framework
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; * `vertico`, `consult`, `orderless`, `marginalia` — completion framework
+;; Vertico: the vertical completion UI 
+;; Orderless: flexible space-separated matching
+;; Marginalia: annotations next to candidates
+;; Consult: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package vertico
+  :init
+  (vertico-mode))
+(with-eval-after-load 'vertico
+  (define-key vertico-map (kbd "DEL") #'vertico-directory-delete-char))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic)))
+
+(use-package marginalia
+  :init
+  (marginalia-mode))
+
+(use-package consult)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; save history
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
