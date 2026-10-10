@@ -453,42 +453,476 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;; (setq lsp-completion-show-kind t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Git
-;;
-;; C-x g opens Magit
+;; Snippets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package magit)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Company completion
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package company
+(use-package yasnippet
   :config
-  (global-company-mode))
+  (yas-global-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Syntax checking
+;; Spell checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package flymake)
+(setq ispell-program-name "aspell")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Language servers
+;; Terminal inside Emacs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package vterm)
+(use-package ghostel)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; File tree
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package treemacs)
+(global-set-key (kbd "C-c e") #'treemacs)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Multiple cursors
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package multiple-cursors)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Recent files
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(global-set-key
+ (kbd "C-x C-r")
+ #'consult-recent-file)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Better searching
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (global-set-key
+;;  (kbd "C-s")
+;;  #'consult-line)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ripgrep project search
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(global-set-key
+ (kbd "C-c g")
+ #'consult-ripgrep)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org mode
 ;;
-;; Built into Emacs 29+
+;; Useful for notes and project planning.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package org)
+
+(setq org-directory
+      (expand-file-name "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/"))
+
+(setq org-agenda-files
+      (mapcar (lambda (file) (expand-file-name file org-directory))
+              '("inbox.org" "todo.org" "schedule.org"
+                "caloutlook.org" "gcalfamily.org" "gcalweberlab.org")))
+
+;; Global entry points Doom gave you under SPC o a / SPC X
+(global-set-key (kbd "C-c a") #'org-agenda)
+(global-set-key (kbd "C-c c") #'org-capture)
+(global-set-key (kbd "C-c l") #'org-store-link)
+;; Your GTD agenda uses NEXT, so uncomment/adjust if you rely on it globally:
+;; (setq org-todo-keywords
+;;       '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "|" "DONE(d)" "KILL(k)")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org-roam (+ UI) -- keys live under C-c r because C-c n
+;; is already your "no new students" snippet.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package org-roam
+  :custom
+  (org-roam-directory
+   (expand-file-name "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/roam/"))
+  :bind (("C-c r f" . org-roam-node-find)
+         ("C-c r i" . org-roam-node-insert)
+         ("C-c r l" . org-roam-buffer-toggle)
+         ("C-c r c" . org-roam-capture))
+  :config
+  (org-roam-db-autosync-mode))
+
+(use-package websocket
+  :after org-roam)
+
+(use-package org-roam-ui
+  :after org-roam
+  :config
+  (setq org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org attachments / images
+;;
+;; Timestamp-based attachment folders instead of random IDs.
+;; org-attach ships with Org, so no use-package/straight here.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(with-eval-after-load 'org-attach
+  (setq org-attach-auto-tag nil
+        org-attach-store-link-p 'file
+        org-attach-id-to-path-function-list
+        '(org-attach-id-ts-folder-format
+          org-attach-id-uuid-folder-format
+          org-attach-id-fallback-folder-format)))
+
+(use-package org-download
+  :after org
+  :config
+  ;; Doom sets this to 'attach so pasted images go through org-attach.
+  (setq org-download-method 'attach
+        org-download-image-org-width 450))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org capture (Inbox, Schedule, and mu4e email workflow)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq org-capture-templates
+      '(("i" "Inbox" entry
+         (file "inbox.org")
+         "* TODO %?\n/Entered on/ %U")
+        
+        ("s" "Schedule Meeting" entry
+         (file+headline "agenda.org" "Future")
+         "* %? :meeting:\n<%<%Y-%m-%d %a %H:00>>")
+        
+        ("m" "Email Workflow")
+        ("md" "Inbox Todo w Deadline" entry
+         (file+headline "todo.org" "Inbox")
+         "* TODO %:subject\n%:fromname due %a\nDEADLINE: %^t\n\n%i"
+         :immediate-finish t
+         :prepend t)
+        ("mt" "Inbox Todo w Schedule" entry
+         (file+headline "todo.org" "Inbox")
+         "* TODO %:subject\n%:fromname entered on %a\nSCHEDULED:%t\n\n%i"
+         :immediate-finish t
+         :prepend t)))
+
+(defun org-capture-inbox ()
+  "Store a link to the current thing, then capture to the inbox."
+  (interactive)
+  (call-interactively 'org-store-link)
+  (org-capture nil "i"))
+
+(global-set-key (kbd "C-c i") #'org-capture-inbox)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org agenda
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-package eglot)
+(use-package org-fancy-priorities
+  :hook (org-mode . org-fancy-priorities-mode)
+  :config
+  (setq org-fancy-priorities-list '((?A . "🚨")
+                                    (?B . "🔶")
+                                    (?C . "⭐"))))
 
-(add-hook 'python-mode-hook 'eglot-ensure)
-(add-hook 'ess-r-mode-hook 'eglot-ensure)
+(setq org-agenda-block-separator 8411)
+
+(setq org-agenda-custom-commands
+      '(("v" "A better agenda view"
+         ((agenda ""
+                  ((org-agenda-span 1)
+                   (org-agenda-start-day "0d")
+                   (org-agenda-entry-types '(:deadline))
+                   (org-deadline-warning-days 0)
+                   (org-agenda-prefix-format "  %?-12t% s %5e ")
+                   (org-agenda-overriding-header "Due today:")))
+          (agenda ""
+                  ((org-agenda-prefix-format "  %?-12t% s %5e ")))
+          (alltodo ""
+                   ((org-agenda-prefix-format "  %i %-12:c %5e ")))))
+        ("g" "Get Things Done (GTD)"
+         ((agenda ""
+                  ((org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'deadline))
+                   (org-deadline-warning-days 0)))
+          (todo "NEXT"
+                ((org-agenda-skip-function
+                  '(org-agenda-skip-entry-if 'deadline))
+                 (org-agenda-prefix-format "  %i %-12:c [%e] ")
+                 (org-agenda-overriding-header "\nTasks\n")))
+          (agenda nil
+                  ((org-agenda-entry-types '(:deadline))
+                   (org-agenda-format-date "")
+                   (org-deadline-warning-days 7)
+                   (org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+                   (org-agenda-overriding-header "\nDeadlines")))
+          (tags-todo "inbox"
+                     ((org-agenda-prefix-format "  %?-12t% s")
+                      (org-agenda-overriding-header "\nInbox\n")))
+          (tags "CLOSED>=\"<today>\""
+                ((org-agenda-overriding-header "\nCompleted today\n")))))))
+
+(with-eval-after-load 'org-agenda
+  (set-face-attribute 'org-agenda-current-time nil
+                      :foreground "red" :weight 'bold))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org journal
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package org-journal
+  :bind ("C-c J" . org-journal-new-entry)
+  :custom
+  (org-journal-file-format "%Y-%m-%d.org")
+  ;; ASSUMPTION: adjust if your journal files lived somewhere else under Doom.
+  (org-journal-dir (expand-file-name "journal/" org-directory)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; .eml files: HTML mode, RET inserts <br>
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(add-to-list 'auto-mode-alist '("\\.eml\\'" . html-mode))
+
+(defun my/insert-br-newline ()
+  "Insert <br> followed by a newline."
+  (interactive)
+  (insert "<br>\n"))
+
+(add-hook 'html-mode-hook
+          (lambda ()
+            (local-set-key (kbd "RET") #'my/insert-br-newline)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Email: mu4e
+;;
+;; mu4e is NOT installed through straight/MELPA. It ships
+;; with the `mu' program, so we load it from the system
+;; install. ASSUMPTION: mu was installed under /usr/local
+;; (your mu binary is /usr/local/bin/mu). Verify with:
+;;   ls /usr/local/share/emacs/site-lisp/mu4e
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'auth-source)
+(setq auth-sources '("~/.authinfo.gpg"))
+
+(use-package org-mime
+  :config
+  (setq org-mime-export-options '(:section-numbers nil
+                                                   :with-author nil
+                                                   :with-toc nil)))
+
+(use-package mu4e
+  :straight nil
+  :load-path "/usr/local/share/emacs/site-lisp/mu4e"
+  :commands (mu4e mu4e-compose-new)
+  :bind ("C-c m" . mu4e)
+  :config
+  ;; Basic settings
+  (setq mu4e-mu-binary "/usr/local/bin/mu"
+        mu4e-maildir "~/.mail/"
+        mu4e-attachment-dir "~/Downloads"
+        mu4e-get-mail-command "mbsync -a"
+        mu4e-update-interval 300        ; Update every 5 minutes
+        mu4e-compose-format-flowed t
+        mu4e-change-filenames-when-moving t
+        mu4e-headers-show-threads nil
+        mu4e-headers-include-related nil
+        message-signature-file "~/.mail/.signature"
+        message-send-mail-function 'smtpmail-send-it
+        gnutls-trustfiles
+        (append gnutls-trustfiles
+                '("~/.config/protonmail/cert.pem")))
+  
+  (setq mu4e-contexts
+        (list
+         ;; BCCHR
+         (make-mu4e-context
+          :name "BCCHR"
+          :match-func
+          (lambda (msg)
+            (when msg
+              (string-prefix-p "/bcchr" (mu4e-message-field msg :maildir))))
+          :vars '((user-full-name . "Alexander Weber")
+                  (user-mail-address . "aweber@bcchr.ca")
+                  (mu4e-sent-folder . "/bcchr/Sent")
+                  (mu4e-drafts-folder . "/bcchr/Drafts")
+                  (mu4e-trash-folder . "/bcchr/Trash")
+                  (smtpmail-smtp-server . "localhost")
+                  (smtpmail-smtp-user . "aweber@bcchr.ca")
+                  (smtpmail-stream-type . plain)
+                  (smtpmail-smtp-service . 1026)))
+         ;; ProtonMail
+         (make-mu4e-context
+          :name "ProtonMail"
+          :match-func
+          (lambda (msg)
+            (when msg
+              (string-prefix-p "/proton" (mu4e-message-field msg :maildir))))
+          :vars '((user-full-name . "Alexander Weber")
+                  (user-mail-address . "weberam2@proton.me")
+                  (mu4e-sent-folder . "/proton/Sent")
+                  (mu4e-drafts-folder . "/proton/Drafts")
+                  (mu4e-trash-folder . "/proton/Trash")
+                  (mu4e-refile-folder . "/proton/Archive")
+                  (smtpmail-smtp-server . "127.0.0.1")
+                  (smtpmail-smtp-user . "weberam2@proton.me")
+                  (smtpmail-stream-type . starttls)
+                  (smtpmail-smtp-service . 1025)))))
+  
+  (setq mu4e-bookmarks
+        '((:name "BCCHR Inbox" :query "maildir:/bcchr/Inbox AND flag:unread" :key ?b)
+          (:name "ProtonMail Inbox" :query "maildir:/proton/Inbox AND flag:unread" :key ?p)
+          (:name "Gmail archive" :query "maildir:\"/gmail/[Gmail]/All Mail\"" :key ?g)
+          (:name "All Unread" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND flag:unread" :key ?u)
+          (:name "Today's messages" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND date:today..now" :key ?t)))
+  
+  (setq mu4e-maildir-shortcuts
+        '((:maildir "/bcchr/Inbox"  :key ?i)
+          (:maildir "/proton/Inbox" :key ?I)
+          (:maildir "/bcchr/Sent"   :key ?s)
+          (:maildir "/proton/Sent"  :key ?S)
+          (:maildir "/bcchr/Trash"  :key ?t)
+          (:maildir "/proton/Trash" :key ?T)))
+  
+  ;; Org links / capture from mu4e (needed for %:subject, %:fromname, %a)
+  (require 'mu4e-org nil t)
+  
+  ;; Capture actions
+  ;; taken from https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org
+  (defun efs/capture-mail-todo (msg)
+    (interactive)
+    (call-interactively 'org-store-link)
+    (org-capture nil "mt"))
+  
+  (defun efs/capture-mail-tododeadline (msg)
+    (interactive)
+    (call-interactively 'org-store-link)
+    (org-capture nil "md"))
+  
+  (add-to-list 'mu4e-headers-actions '("todo" . efs/capture-mail-todo) t)
+  (add-to-list 'mu4e-view-actions '("todo" . efs/capture-mail-todo) t)
+  (add-to-list 'mu4e-view-actions '("deadline" . efs/capture-mail-tododeadline) t)
+  (add-to-list 'mu4e-headers-actions '("deadline" . efs/capture-mail-tododeadline) t)
+  
+  ;; Context switching
+  (setq mu4e-context-policy 'pick-first
+        mu4e-compose-context-policy 'ask)
+  
+  ;; Use the gnus message view engine, which enables iCal support.
+  (setq mu4e-view-use-gnus t)
+  (require 'mu4e-icalendar)
+  (mu4e-icalendar-setup)
+  
+  ;; Org integration for calendar invites.
+  ;; **IMPORTANT**: the file and headline must exist in todo.org!
+  (setq gnus-icalendar-org-capture-file (concat org-directory "todo.org"))
+  (setq gnus-icalendar-org-capture-headline '("Calendar"))
+  (gnus-icalendar-org-setup)
+  
+  ;; Write in org, send as HTML
+  (add-hook 'message-send-hook 'org-mime-htmlize)
+  
+  (defun my-do-compose-stuff ()
+    "My settings for message composition."
+    (set-fill-column 72)
+    (flyspell-mode))
+  (add-hook 'mu4e-compose-mode-hook #'my-do-compose-stuff))
+
+;; Email signature
+(defun my-insert-signature ()
+  "Insert my standard email signature."
+  (interactive)
+  (insert "Cheers,\n\nAlex W.\n\n"))
+
+;; "No new students" reply, followed by signature
+(defun my-insert-no-students-response ()
+  "Insert a polite refusal for new students, followed by my signature."
+  (interactive)
+  (insert "Thank you for reaching out. Unfortunately, I am not taking on any new students at the moment. \n\nBest of luck with your academic pursuits.\n\n")
+  (my-insert-signature))
+
+(with-eval-after-load 'message
+  (define-key message-mode-map (kbd "C-c s") #'my-insert-signature)
+  (define-key message-mode-map (kbd "C-c n") #'my-insert-no-students-response))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Music: Subsonic (needs `mpv' installed)
+;;
+;; Doom needed evil-state overrides and RET remaps for the
+;; subsonic buffers; without evil the package defaults work.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package subsonic
+  :commands subsonic
+  :bind (("<f6>"  . subsonic)
+         ("<f7>"  . subsonic-toggle-playing)
+         ("<f8>"  . subsonic-skip-track)
+         ("<f9>"  . subsonic-prev-track)
+         ("<f10>" . subsonic-toggle-playlist))
+  :custom
+  (subsonic-host "192.168.0.103:4533")
+  (subsonic-enable-art t)
+  (subsonic-ssl nil)
+  (subsonic-scrobble-plays t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; EPUB reading
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package nov
+  :mode ("\\.epub\\'" . nov-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; AI coding support
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package gptel
+  :config
+  ;; Create the Gemini backend, reading the key from authinfo
+  (setq gptel-backend
+        (gptel-make-gemini "Gemini"
+          :key #'gptel-api-key-from-auth-source
+          :stream t)))
+
+;; Set default model
+(setq gptel-model 'gemini-2.5-flash)
+(setq gptel-default-mode 'org-mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Smartparens
+;; Automatically inserts matching delimiters and
+;; makes editing parentheses easier.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package smartparens
+  :config
+  (require 'smartparens-config)
+  (smartparens-global-mode 1)
+  (show-smartparens-global-mode 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; minimap
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package minimap
+  :config
+  ;; Fix for Quarto / Polymode buffers:
+  ;; Force the minimap to always track the base (parent) buffer
+  (advice-add 'minimap-get-buffer :around
+              (lambda (orig-fun &rest args)
+                (let ((buf (apply orig-fun args)))
+                  (if (and buf (buffer-base-buffer buf))
+                      (buffer-base-buffer buf)
+                    buf)))))
+(setq minimap-window-location 'right) ; Put it on the right side
+(setq minimap-update-delay 0.05)      ; Make scrolling responsive
+(setq minimap-width-fraction 0.15)    ; Take up 15% of the window width
+(with-eval-after-load 'minimap
+  (add-to-list 'minimap-major-modes 'markdown-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TODO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package hl-todo
+  :custom
+  (hl-todo-keyword-faces
+   '(("TODO"  . (:foreground "black" :background "#7FDBFF" :weight bold))
+     ("FIXME" . (:foreground "black" :background "#ff6666" :weight bold))
+     ("NOTE"  . (:foreground "black" :background "#66ff66" :weight bold))
+     ("HACK"  . (:foreground "black" :background "#cc66ff" :weight bold))))
+  :config
+  (global-hl-todo-mode))
+
+(global-set-key (kbd "C-c t n") 'hl-todo-next)
+(global-set-key (kbd "C-c t p") 'hl-todo-previous)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Python support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package python-mode)
 
 (setq python-shell-interpreter "python3")
