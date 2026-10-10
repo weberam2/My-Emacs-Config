@@ -51,32 +51,54 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Better defaults
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (setq auto-save-default nil)
-
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
-
 (save-place-mode 1)
 (recentf-mode 1)
 
 ;; M-a and M-e
 (setq sentence-end-double-space nil)
 
-;; This configuration uses:
-;; 
-;; * `straight.el` — package manager
-;; * `use-package` — organize package configuration
-;; * `vertico`, `consult`, `orderless`, `marginalia` — completion framework
-;; * `eglot` — language servers
+;; Replace list-buffers with ibuffer
+(global-set-key [remap list-buffers] 'ibuffer)
+
+;; Better other window
+(global-set-key (kbd "M-o") 'other-window)
+
+;; Tramp/Dired copy/paste DWIM
+(setq dired-dwim-target t)
+
+;; delete to trash, undo limit, kill ring max
+(setq delete-by-moving-to-trash t
+      undo-limit 80000000
+      kill-ring-max 200)
+
+;; Calendar
+(with-eval-after-load 'holidays
+  ;; BC statutory holidays
+  (setq holiday-local-holidays
+        '((holiday-fixed 1 1 "New Year's Day")
+          (holiday-float 2 1 3 "Family Day")             ; 3rd Monday in Feb
+          (holiday-float 5 1 -1 "Victoria Day" 24)       ; Monday before May 25
+          (holiday-fixed 7 1 "Canada Day")
+          (holiday-float 8 1 1 "BC Day")                 ; 1st Monday in Aug
+          (holiday-float 9 1 1 "Labour Day")             ; 1st Monday in Sept
+          (holiday-fixed 9 30 "National Day for Truth and Reconciliation")
+          (holiday-float 10 1 2 "Thanksgiving")          ; 2nd Monday in Oct
+          (holiday-fixed 11 11 "Remembrance Day")
+          (holiday-fixed 12 25 "Christmas Day")))
+  ;; Only show BC holidays plus Easter/Good Friday (Christian list).
+  ;; This replaces the default US, Hebrew, Islamic, etc. lists.
+  (setq calendar-holidays
+        (append holiday-local-holidays
+                holiday-christian-holidays)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package manager
-;;
 ;; straight.el installs packages directly from source.
 ;; use-package makes package configuration easier to read.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defvar bootstrap-version)
 
 (let ((bootstrap-file
