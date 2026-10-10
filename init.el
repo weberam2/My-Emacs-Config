@@ -1149,31 +1149,19 @@ count only within it."
 (add-hook 'after-save-hook #'my/setup-citar-from-qmd-yaml)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Insert citations with C-c ]
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(with-eval-after-load 'markdown-mode
-  (define-key markdown-mode-map
-              (kbd "C-c ]")
-              #'citar-insert-citation))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Optional notes directory
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (setq citar-library-paths
       '("~/papers"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; BibTeX mode improvements
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package bibtex)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; LaTeX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package auctex)
 
 (setq TeX-auto-save t)
@@ -1182,186 +1170,31 @@ count only within it."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; PDF viewing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (use-package pdf-tools
   :config
   (pdf-tools-install))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Snippets
+;; YAML support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package yasnippet
-  :config
-  (yas-global-mode))
+(use-package yaml-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Spell checking
+;; JSON support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(setq ispell-program-name "aspell")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Terminal inside Emacs
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package vterm)
+(use-package json-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; File tree
+;; Custom keybindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-package treemacs)
+(defun insert-current-date ()
+  "Insert current date in yyyy-mm-dd format."
+  (interactive)
+  (insert (format-time-string "%Y-%m-%d")))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Multiple cursors
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(global-set-key (kbd "C-c d") #'insert-current-date)
 
-(use-package multiple-cursors)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Recent files
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(global-set-key
- (kbd "C-x C-r")
- #'consult-recent-file)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Better searching
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; (global-set-key
-;;  (kbd "C-s")
-;;  #'consult-line)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ripgrep project search
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(global-set-key
- (kbd "C-c g")
- #'consult-ripgrep)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Useful shortcuts
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(global-set-key
- (kbd "C-x g")
- #'magit-status)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Org mode
-;;
-;; Useful for notes and project planning.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package org)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Optional AI coding support
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package gptel
-  :config
-  ;; Create the Gemini backend, reading the key from authinfo
-  (setq gptel-backend
-        (gptel-make-gemini "Gemini"
-          :key #'gptel-api-key-from-auth-source
-          :stream t)))
-
-;; Set default model
-(setq gptel-model 'gemini-2.5-flash)
-(setq gptel-default-mode 'org-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Start server
-;;
-;; Allows emacsclient to reuse sessions.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(server-start)
-
-;; TODO
-(use-package hl-todo
-  :custom
-  (hl-todo-keyword-faces
-   '(("TODO"  . (:foreground "black" :background "#7FDBFF" :weight bold))
-     ("FIXME" . (:foreground "black" :background "#ff6666" :weight bold))
-     ("NOTE"  . (:foreground "black" :background "#66ff66" :weight bold))
-     ("HACK"  . (:foreground "black" :background "#cc66ff" :weight bold))))
-  :config
-  (global-hl-todo-mode))
-
-(global-set-key (kbd "C-c t n") 'hl-todo-next)
-(global-set-key (kbd "C-c t p") 'hl-todo-previous)
-
-;; Quarto
-;; https://gist.github.com/fast-90/3d7ce3252fff59b0f6d6d1bcadcf4938
-(use-package quarto-mode
-  :bind (:map poly-quarto-mode-map
-              ("C-c q p" . quarto-preview)))
-
-;; Math preview
-(use-package math-preview)
-;; (add-hook 'markdown-mode-hook
-;;           (lambda ()
-;;             (when (and buffer-file-name
-;;                        (string-match-p "\\.qmd\\'" buffer-file-name))
-;;               (math-preview-all))))
-
-;; Shows changed lines in the fringe:
-(use-package diff-hl
-  :config
-  (global-diff-hl-mode))
-
-;; formats on save
-(use-package apheleia
-  :config
-  (apheleia-global-mode +1))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Smartparens
-;;
-;; Automatically inserts matching delimiters and
-;; makes editing parentheses easier.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package smartparens
-  :config
-  (require 'smartparens-config)
-  (smartparens-global-mode 1)
-  (show-smartparens-global-mode 1))
-
-;; Markdown face definitions
-(defface my-markdown-citation-face
-  '((t (:foreground "#F54927"
-                    :weight bold)))
-  "Face used for Pandoc citations.")
-(font-lock-add-keywords
- 'markdown-mode
- '(("\\(\\[@[^]]+\\]\\)"
-    1 'my-markdown-citation-face t)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; minimap
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package minimap
-  :config
-  ;; Fix for Quarto / Polymode buffers:
-  ;; Force the minimap to always track the base (parent) buffer
-  (advice-add 'minimap-get-buffer :around
-              (lambda (orig-fun &rest args)
-                (let ((buf (apply orig-fun args)))
-                  (if (and buf (buffer-base-buffer buf))
-                      (buffer-base-buffer buf)
-                    buf)))))
-(setq minimap-window-location 'right) ; Put it on the right side
-(setq minimap-update-delay 0.05)      ; Make scrolling responsive
-(setq minimap-width-fraction 0.15)    ; Take up 15% of the window width
-(with-eval-after-load 'minimap
-  (add-to-list 'minimap-major-modes 'markdown-mode))
 
 ;; ## External software you'll want installed
 ;; 
