@@ -368,6 +368,12 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (global-set-key (kbd "C-c j") 'avy-goto-char-timer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Avy-zap - zap to jump
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package avy-zap)
+(global-set-key (kbd "M-Z") 'avy-zap-up-to-char-dwim)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Project support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Detects the "current project," usually by finding a version-control root (a .git directory, for example)
