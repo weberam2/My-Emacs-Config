@@ -1365,6 +1365,7 @@ count only within it."
 
 (global-set-key (kbd "C-c d") #'insert-current-date)
 
+(global-set-key (kbd "M-z") 'zap-up-to-char)
 
 ;; ## External software you'll want installed
 ;; 
