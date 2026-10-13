@@ -137,7 +137,9 @@
 
 (setq straight-use-package-by-default t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Whole line or region (better C-w)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package whole-line-or-region)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -228,7 +230,7 @@
 _n_: next heading       _TAB_: cycle           _h_: promote
 _p_: prev heading       _a_: show all          _l_: demote
 _f_: forward same lvl   _s_: show subtree      _k_: move up
-_b_: backward same lvl  _h_: hide subtree      _j_: move down
+_b_: backward same lvl  _S_: hide subtree      _j_: move down
 _u_: up heading         _d_: hide body         _/_: insert heading
 ^ ^                     _q_: hide leaves
 ^^^^^^^^----------------------------------------------------------------
@@ -245,7 +247,7 @@ _<ESC>_: quit
   ("TAB" outline-toggle-children)
   ("a" outline-show-all)
   ("s" outline-show-subtree)
-  ("h" outline-hide-subtree)
+  ("S" outline-hide-subtree)
   ("d" outline-hide-body)
   ("q" outline-hide-leaves)
 
