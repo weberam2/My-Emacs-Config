@@ -59,6 +59,10 @@
 (setq-default
  display-line-numbers-type 'relative)
 (global-display-line-numbers-mode)
+(add-hook 'pdf-view-mode-hook
+          (lambda () (setq-local display-line-numbers nil)))
+(add-hook 'org-timegrid-mode-hook
+          (lambda () (display-line-numbers-mode -1)))
 (column-number-mode)
 (setq ring-bell-function 'ignore)
 
