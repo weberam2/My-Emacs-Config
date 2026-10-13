@@ -541,7 +541,7 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (setq org-agenda-files
       (mapcar (lambda (file) (expand-file-name file org-directory))
               '("inbox.org" "todo.org" "schedule.org"
-                "caloutlook.org" "gcalfamily.org" "gcalweberlab.org")))
+                "caloutlook.org" "weberlab.org" "family.org" "gcal.org")))
 
 ;; Global entry points Doom gave you under SPC o a / SPC X
 (global-set-key (kbd "C-c a") #'org-agenda)
@@ -619,7 +619,32 @@ _SPC_ cancel	_o_nly this   	_d_elete
          (file+headline "todo.org" "Inbox")
          "* TODO %:subject\n%:fromname entered on %a\nSCHEDULED:%t\n\n%i"
          :immediate-finish t
-         :prepend t)))
+         :prepend t)
+
+        ("t" "Todo")
+        ("td" "Todo w Deadline" entry
+         (file+headline "todo.org" "Inbox")
+         "* TODO %?\nDue by DEADLINE: %^t\n%i"
+         :prepend t)
+        ("tt" "Todo w Schedule" entry
+         (file+headline "todo.org" "Inbox")
+         "* TODO %?\nEntered on %a\nSCHEDULED:%t\n%i"
+         :prepend t)
+
+        ;; Google Calendar Sub-Menu (Time Ranges via %^T)
+        ;;   (setq org-capture-templates
+        ;; `(("a" "Appointment" entry (file ,(concat org-directory "/gcal.org"))
+        ;;   "* %?\n:PROPERTIES:\n:calendar-id:\tFirst.Last@gmail.com\n:END:\n:org-gcal:\n%^T--%^T\n:END:\n\n" :jump-to-captured t)))
+        ("c" "Calendar")
+        ("cg" "Primary Google Calendar" entry
+         (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/gcal.org")
+         "* %? :Primary:\n")
+        ("cf" "Family Calendar" entry
+         (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/family.org")
+         "* %? :Family:\n")
+        ("cw" "WeberLab Calendar" entry
+         (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/weberlab.org")
+         "* %? :WeberLab:\n")))
 
 (defun org-capture-inbox ()
   "Store a link to the current thing, then capture to the inbox."
@@ -629,10 +654,59 @@ _SPC_ cancel	_o_nly this   	_d_elete
 
 (global-set-key (kbd "C-c i") #'org-capture-inbox)
 
+;; delete frame when done
+(add-hook 'org-capture-after-finalize-hook
+          (lambda ()
+            (when (equal (frame-parameter nil 'name) "org-capture")
+              (delete-frame))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Sync org and gcal
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; if you need to force a reset:
+;; (progn
+;; (setq org-gcal--sync-tokens nil)
+;; (org-gcal-fetch))
+(use-package org-gcal
+  :ensure t
+  :init
+  (let* ((auth (car (auth-source-search :max 1
+                                        :host "google-calendar"
+                                        :require '(:user :secret))))
+         (client-id (and auth (or (plist-get auth :user) (plist-get auth :login))))
+         (client-secret (and auth (auth-info-password auth))))
+    (if (and client-id client-secret)
+        (setq org-gcal-client-id client-id
+              org-gcal-client-secret client-secret)
+      (message "Warning: Could not load google-calendar credentials from auth-source!")))
+  :config
+  (setq org-gcal-file-alist
+        '(("9cb3fa6ea68155398c47cb0d3bcc75a325bbb754adbe80d3b8dbf62970a5323f@group.calendar.google.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/family.org")
+          ("weberam2@gmail.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/gcal.org")
+          ("sns1ipmdf7kklu77b3q9ibg0nk@group.calendar.google.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/weberlab.org")))
+  (defun my-org-gcal-set-calendar-tags (calendar-id &optional _event _update-mode)
+    "Automatically add tags to headlines based on CALENDAR-ID or headline property."
+    (let* ((cal-id (or calendar-id (org-entry-get (point) "calendar-id") ""))
+           (tag (cond
+                 ((string-match-p "9cb3f" cal-id) "Family")
+                 ((string-match-p "sns1i" cal-id) "WeberLab")
+                 ((string-match-p "weberam2@gmail\\.com" cal-id) "Primary")
+                 (t nil))))
+      (when tag
+        (let ((current-tags (org-get-tags nil t)))
+          (unless (member tag current-tags)
+            (org-set-tags (cons tag current-tags)))))))
+
+  ;; Attach to org-gcal hook
+  (add-hook 'org-gcal-after-update-entry-functions #'my-org-gcal-set-calendar-tags))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org agenda
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; start on today
+(setq org-agenda-start-on-weekday nil)
 
+;; fancy priorities
 (use-package org-fancy-priorities
   :hook (org-mode . org-fancy-priorities-mode)
   :config
@@ -683,6 +757,62 @@ _SPC_ cancel	_o_nly this   	_d_elete
                       :foreground "red" :weight 'bold))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org timegrid
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package org-timegrid
+  :straight (:host github :repo "Gleek/org-timegrid")
+  :demand t
+  :bind (("C-c T" . org-timegrid-week))
+  :init
+  ;; The symbol `agenda' means: read events from `org-agenda-files'.
+  (setq org-timegrid-org-files 'agenda
+
+        ;; Center today (or a date you jump to) in the visible range.
+        org-timegrid-range-alignment 'left
+
+        ;; Recommended compact scale; use 1.0 to match Emacs's default font.
+        org-timegrid-default-zoom 0.7
+
+        org-timegrid-start-hour 7
+
+        org-timegrid-org-capture-file
+        (expand-file-name "calendar.org" org-directory)
+        org-timegrid-org-capture-template
+        '(:target file
+                  :template "* %{title}\n%{time-range}\n%?")
+
+        ;; Save Org buffers immediately after edits made in the calendar.
+        org-timegrid-org-auto-save t
+
+        ;; Set this to nil if repeating entries should be hidden.
+        org-timegrid-org-show-repeaters t
+
+        ;; The first matching tag supplies an event's colour.
+        org-timegrid-org-tag-color-alist
+        '(("Work"     . indigo)
+          ("Family" . green)
+          ("Primary"  . yellow)
+          ("WeberLab"   . cyan)))
+  :config
+  (require 'org-timegrid-org))
+
+;; ;; This is part of the same package. It adds a read-only day strip to Org
+;; ;; Agenda; pressing RET on the strip opens the editable week view.
+;; (use-package org-timegrid-agenda
+;;   :straight nil
+;;   :after org-agenda
+;;   :demand t
+;;   :init
+;;   ;; nil inserts the strip at the top. To place it after a particular custom
+;;   ;; agenda block, use a regexp matching that block's heading instead.
+;;   (setq org-timegrid-agenda-insert-after nil
+;;         org-timegrid-agenda-separator t
+;;         org-timegrid-agenda-minutes-before 180
+;;         org-timegrid-agenda-minutes-after 180)
+;;   :config
+;;   (org-timegrid-agenda-mode 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org journal
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package org-journal
@@ -716,8 +846,22 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;; (your mu binary is /usr/local/bin/mu). Verify with:
 ;;   ls /usr/local/share/emacs/site-lisp/mu4e
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'auth-source)
-(setq auth-sources '("~/.authinfo.gpg"))
+
+(setq mu4e-use-fancy-chars t)
+(setq mu4e-headers-unread-mark    '("u" . "📩 "))
+(setq mu4e-headers-draft-mark     '("D" . "🚧 "))
+(setq mu4e-headers-flagged-mark   '("F" . "🚩 "))
+(setq mu4e-headers-new-mark       '("N" . "✨ "))
+(setq mu4e-headers-passed-mark    '("P" . "↪ "))
+(setq mu4e-headers-replied-mark   '("R" . "↩ "))
+(setq mu4e-headers-seen-mark      '("S" . " "))
+(setq mu4e-headers-trashed-mark   '("T" . "🗑️"))
+(setq mu4e-headers-attach-mark    '("a" . "📎 "))
+(setq mu4e-headers-encrypted-mark '("x" . "🔑 "))
+(setq mu4e-headers-signed-mark    '("s" . "🖊 "))
+(setq mu4e-headers-personal-mark '("p" . ""))
+
+(setq message-kill-buffer-on-exit t) ;; kill buffer after send
 
 (use-package org-mime
   :config
