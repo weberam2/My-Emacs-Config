@@ -1,3 +1,17 @@
+(require 'auth-source)
+(setq auth-sources '("~/.authinfo.gpg"))
+
+;; Set your default GPG key ID for all EasyPG / EPA operations
+(setq epa-file-encrypt-to '("D377615D1BC24A0D"))  ; Replace with your key ID
+;; Avoid getting prompted all the time for the password to your plstore
+(setq plstore-cache-passphrase-for-symmetric-encryption t)
+;; Disable key selection prompting completely
+(setq epa-file-select-keys nil)
+;; Ensure plstore also uses non-interactive key selection
+(with-eval-after-load 'plstore
+  (setq plstore-select-keys nil
+        plstore-encrypt-to "D377615D1BC24A0D"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;   Basic settings for quick startup and convenience
