@@ -1108,12 +1108,16 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Python support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; install python language server on your machine: npx install -g pyright
 (use-package python-mode)
+;; **Python REPL**
+;; M-x run-python
 
 (setq python-shell-interpreter "python3")
 
 (use-package python
   :init
+  ;; cleanly intercepts and strips those out, keeping the shell output clean
   (defun python-comint-filter (output)
     "Filter out '__PYTHON_EL_' when sending region to inferior Python shell.
 See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-eval-message"
@@ -1133,7 +1137,8 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
   (python-indent-guess-indent-offset-verbose nil)
   (python-shell-completion-native-enable nil))
 
-(use-package pet
+;; pet automatically detects project-local virtual environments
+(use-package pet 
   :hook
   (python-base-mode-hook . dn/python-pet-hook)
   :init
@@ -1146,7 +1151,7 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
     (when-let ((black-executable (pet-executable-find "black")))
       (setq-local python-black-command black-executable))))
 
-;; Virtual environments
+;; Virtual environments - redundant b/c of pet?
 (use-package pyvenv
   :config
   (pyvenv-mode))
@@ -1154,6 +1159,22 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
 ;; Jupyter support
 ;; M-x jupyter-run-repl
 (use-package jupyter)
+
+;; hooks Eglot into both python-mode and python-ts-mode, ensures it uses Pyright, and configures auto-start behavior:
+;; (use-package eglot
+;;   :ensure nil ; Built-in as of Emacs 29+
+;;   :hook
+;;   ((python-mode . eglot-ensure)
+;;    (python-ts-mode . eglot-ensure))
+;;   :custom
+;;   ;; Prevent Eglot from popping up massive help windows automatically
+;;   (eglot-auto-display-help-buffer nil)
+;;   ;; Faster update intervals for live error checking
+;;   (eglot-send-changes-idle-time 0.5)
+;;   :config
+;;   ;; Explicitly map python modes to pyright if not auto-detected
+;;   (add-to-list 'eglot-server-programs
+;;                '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; R support
@@ -1215,10 +1236,6 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
 ;; Quarto
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; https://gist.github.com/fast-90/3d7ce3252fff59b0f6d6d1bcadcf4938
-(use-package quarto-mode
-  :bind (:map poly-quarto-mode-map
-              ("C-c q p" . quarto-preview)))
-
 (defun my/count-words-qmd ()
   "Count words in a Quarto buffer, excluding YAML front matter,
 markdown tables, images, lines starting with ':', inline
@@ -1291,7 +1308,10 @@ count only within it."
               (goto-char line-end))))))
       (message "Word count: %d" count))))
 
-(global-set-key (kbd "C-c w") #'my/count-words-qmd)
+(use-package quarto-mode
+  :bind (:map poly-quarto-mode-map
+              ("C-c q p" . quarto-preview)
+              ("C-c q w" . my/count-words-qmd)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Polymode
@@ -1333,9 +1353,7 @@ count only within it."
 (add-hook 'find-file-hook #'my/setup-citar-from-qmd-yaml)
 (add-hook 'after-save-hook #'my/setup-citar-from-qmd-yaml)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Optional notes directory
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq citar-library-paths
       '("~/papers"))
 
@@ -1459,68 +1477,36 @@ count only within it."
 
 (global-set-key (kbd "C-c d") #'insert-current-date)
 
-(global-set-key (kbd "M-z") 'zap-up-to-char)
-
 ;; ## External software you'll want installed
-;; 
 ;; ### Python
-;; 
 ;; ```bash
 ;; pip install jupyter jupyterlab python-lsp-server
 ;; ```
-;; 
 ;; ### R
-;; 
 ;; ```r
 ;; install.packages(c(
 ;;   "languageserver",
 ;;   "tidyverse"
 ;; ))
 ;; ```
-;; 
 ;; ### Quarto
-;; 
 ;; ```bash
 ;; sudo apt install quarto
 ;; ```
-;; 
 ;; ### Ripgrep
-;; 
 ;; ```bash
 ;; sudo apt install ripgrep
 ;; ```
-;; 
 ;; ### Aspell
-;; 
 ;; ```bash
 ;; sudo apt install aspell
 ;; ```
-;; 
 ;; ### BetterBibTeX
-;; 
 ;; Use Zotero with BetterBibTeX and continuously export:
-;; 
 ;; ```text
 ;; references.bib
 ;; ```
-;; 
-;; 
-;; **Python REPL**
-;; 
-;; ```
-;; M-x run-python
-;; ```
-;; 
-;; ---
-;; 
-;; **Jupyter kernel**
-;; 
-;; ```
-;; M-x jupyter-run-repl
-;; ```
-;; 
-;; ---
-;; 
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
