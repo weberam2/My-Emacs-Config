@@ -1,3 +1,5 @@
+;; TODO: make init an org config: https://gemini.google.com/app/055d828cc62515b2
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;   Basic settings for quick startup and convenience
@@ -15,8 +17,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (setopt inhibit-splash-screen t)
-(menu-bar-mode -1) ;; hides graphical top menu
-(scroll-bar-mode -1) ;; hides scroll bar on the side
 (setq inhibit-startup-screen t) ;; disable default splash screen
 (setq-default
  display-line-numbers-type 'relative) ;; relative line numbers
@@ -32,9 +32,14 @@
 ;; Default frame configuration: full screen, good-looking title bar on macOS
 (setq frame-resize-pixelwise t)
 (tool-bar-mode -1)                      ; All these tools are in the menu-bar anyway
-(setq default-frame-alist '((fullscreen . maximized)
-                            (ns-appearance . dark)
-                            (ns-transparent-titlebar . t)))
+(setq default-frame-alist
+      '((fullscreen . maximized)
+        (ns-appearance . dark)
+        (ns-transparent-titlebar . t)
+        (vertical-scroll-bars . nil) ;; hides scroll bar on the side
+        (horizontal-scroll-bars . nil)
+        (tool-bar-lines . 0)
+        (menu-bar-lines . 0)))  ;; hides graphical top menu
 
 ;; Theme
 ;; (load-theme 'modus-operandi t)
@@ -55,9 +60,6 @@
 (recentf-mode 1) ;; turns on recent file tracker. Use M-x recentf-open-files
 (global-auto-revert-mode) ;; Automatically refreshes buffers in Emacs when the underlying file has been changed on disk by an external program
 
-;; Whole line or region (better C-w)
-(use-package whole-line-or-region)
-
 ;; M-a and M-e
 (setq sentence-end-double-space nil)
 
@@ -77,7 +79,8 @@
 
 ;; Start server
 ;; Allows emacsclient to reuse sessions.
-(server-start)
+(require 'server)
+(unless (server-running-p) (server-start))
 
 ;; Calendar
 (with-eval-after-load 'holidays
@@ -143,6 +146,9 @@
 (straight-use-package 'use-package)
 
 (setq straight-use-package-by-default t)
+
+;; Whole line or region (better C-w)
+(use-package whole-line-or-region)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Completion framework
@@ -286,6 +292,7 @@ _<ESC>_: quit
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Window Management
 (winner-mode 1)
+(use-package ace-window)
 
 (defun ace-maximize-window ()
   "Toggle between maximizing the current window and restoring previous layout."
@@ -502,6 +509,7 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;; M-x yas-describe-tables
 ;; M-x yas-visit-snippet-file
 ;; M-x yas-new-snippet
+(use-package yasnippet-snippets :after yasnippet)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Spell checking
@@ -682,7 +690,6 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;; (setq org-gcal--sync-tokens nil)
 ;; (org-gcal-fetch))
 (use-package org-gcal
-  :ensure t
   :init
   (let* ((auth (car (auth-source-search :max 1
                                         :host "google-calendar"
@@ -1109,7 +1116,7 @@ _SPC_ cancel	_o_nly this   	_d_elete
 ;; Python support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; install python language server on your machine: npx install -g pyright
-(use-package python-mode)
+;; (use-package python-mode) ;; don't need?
 ;; **Python REPL**
 ;; M-x run-python
 
@@ -1140,7 +1147,7 @@ See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-ev
 ;; pet automatically detects project-local virtual environments
 (use-package pet 
   :hook
-  (python-base-mode-hook . dn/python-pet-hook)
+  (python-base-mode . dn/python-pet-hook)
   :init
   (defun dn/python-pet-hook ()
     "Activate pet mode, and set the local variables to identify the correct executables."
@@ -1273,10 +1280,10 @@ count only within it."
                 ;; No closing ::: found in region, skip till end of region
                 (setq done t))))
 
-           ((looking-at "^\$\$")
+           ((looking-at "^\\$\\$")
             ;; Move past the opening $$ line
             (forward-line 1)
-            (let ((double-money (re-search-forward "^\$\$" end t)))
+            (let ((double-money (re-search-forward "^\\$\\$" end t)))
               (if double-money
                   ;; Found closing $$, move past its line
                   (goto-char (line-end-position))
@@ -1513,10 +1520,10 @@ count only within it."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("e14289199861a5db890065fdc5f3d3c22c5bac607e0dbce7f35ce60e6b55fc52" "dd4582661a1c6b865a33b89312c97a13a3885dc95992e2e5fc57456b4c545176" "aec7b55f2a13307a55517fdf08438863d694550565dee23181d2ebd973ebd6b8" "9e5e0ff3a81344c9b1e6bfc9b3dcf9b96d5ec6a60d8de6d4c762ee9e2121dfb2" "d481904809c509641a1a1f1b1eb80b94c58c210145effc2631c1a7f2e4a2fdf4" "3613617b9953c22fe46ef2b593a2e5bc79ef3cc88770602e7e569bbd71de113b" "0325a6b5eea7e5febae709dab35ec8648908af12cf2d2b569bedc8da0a3a81c1" "720838034f1dd3b3da66f6bd4d053ee67c93a747b219d1c546c41c4e425daf93" "e184d8607cc9933f2ba8e180699365bdf8b6f311834a9e15c71947b38be0caa3" default))
- (custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
-  ))
+   '("e14289199861a5db890065fdc5f3d3c22c5bac607e0dbce7f35ce60e6b55fc52" "dd4582661a1c6b865a33b89312c97a13a3885dc95992e2e5fc57456b4c545176" "aec7b55f2a13307a55517fdf08438863d694550565dee23181d2ebd973ebd6b8" "9e5e0ff3a81344c9b1e6bfc9b3dcf9b96d5ec6a60d8de6d4c762ee9e2121dfb2" "d481904809c509641a1a1f1b1eb80b94c58c210145effc2631c1a7f2e4a2fdf4" "3613617b9953c22fe46ef2b593a2e5bc79ef3cc88770602e7e569bbd71de113b" "0325a6b5eea7e5febae709dab35ec8648908af12cf2d2b569bedc8da0a3a81c1" "720838034f1dd3b3da66f6bd4d053ee67c93a747b219d1c546c41c4e425daf93" "e184d8607cc9933f2ba8e180699365bdf8b6f311834a9e15c71947b38be0caa3" default)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
