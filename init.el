@@ -1,17 +1,3 @@
-(require 'auth-source)
-(setq auth-sources '("~/.authinfo.gpg"))
-
-;; Set your default GPG key ID for all EasyPG / EPA operations
-(setq epa-file-encrypt-to '("D377615D1BC24A0D"))  ; Replace with your key ID
-;; Avoid getting prompted all the time for the password to your plstore
-(setq plstore-cache-passphrase-for-symmetric-encryption t)
-;; Disable key selection prompting completely
-(setq epa-file-select-keys nil)
-;; Ensure plstore also uses non-interactive key selection
-(with-eval-after-load 'plstore
-  (setq plstore-select-keys nil
-        plstore-encrypt-to "D377615D1BC24A0D"))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;   Basic settings for quick startup and convenience
@@ -24,8 +10,24 @@
 (setq warning-suppress-log-types '((comp) (bytecomp)))
 (setq native-comp-async-report-warnings-errors 'silent)
 
-;; Silence stupid startup message
-(setq inhibit-startup-echo-area-message (user-login-name))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; General appearance
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setopt inhibit-splash-screen t)
+(menu-bar-mode -1) ;; hides graphical top menu
+(scroll-bar-mode -1) ;; hides scroll bar on the side
+(setq inhibit-startup-screen t) ;; disable default splash screen
+(setq-default
+ display-line-numbers-type 'relative) ;; relative line numbers
+(global-display-line-numbers-mode) ;; line numbers for all modes
+(add-hook 'pdf-view-mode-hook
+          (lambda () (setq-local display-line-numbers nil))) ;; disable line numbers for this mode
+(add-hook 'org-timegrid-mode-hook
+          (lambda () (display-line-numbers-mode -1))) ;; disable line numbers for this mode
+(column-number-mode) ;; show column number in mode line
+(setq inhibit-startup-echo-area-message (user-login-name)) ;; Silence stupid startup message
+(setopt display-time-default-load-average nil) ; this information is useless for most
 
 ;; Default frame configuration: full screen, good-looking title bar on macOS
 (setq frame-resize-pixelwise t)
@@ -34,46 +36,27 @@
                             (ns-appearance . dark)
                             (ns-transparent-titlebar . t)))
 
-;; turn off the welcome screen
-(setopt inhibit-splash-screen t)
-(setopt make-backup-files nil)
-(setopt create-lockfiles nil)
-(setopt use-short-answers t) ; answer with y or n
-(setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
-(setopt display-time-default-load-average nil) ; this information is useless for most
-
-;; theme
+;; Theme
 ;; (load-theme 'modus-operandi t)
 (load-theme 'modus-vivendi t)
-
-;; Package initialization
-(with-eval-after-load 'package
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; General appearance
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(setq inhibit-startup-screen t)
-(setq-default
- display-line-numbers-type 'relative)
-(global-display-line-numbers-mode)
-(add-hook 'pdf-view-mode-hook
-          (lambda () (setq-local display-line-numbers nil)))
-(add-hook 'org-timegrid-mode-hook
-          (lambda () (display-line-numbers-mode -1)))
-(column-number-mode)
-(setq ring-bell-function 'ignore)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Better defaults
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setq auto-save-default nil)
-(setq-default indent-tabs-mode nil)
-(setq-default tab-width 4)
-(save-place-mode 1)
-(recentf-mode 1)
+(setopt make-backup-files nil) ;; don't create those files that end in ~
+(setopt create-lockfiles nil) ;; don't create those file that start with .#
+(setq auto-save-default nil) ;; stops emacs from creating the #filename# files
+(setopt use-short-answers t) ; answer with y or n
+(setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
+(setq ring-bell-function 'ignore) ;; no annoying bell
+(setq-default indent-tabs-mode nil) ;; use spaces instead of tabs
+(setq-default tab-width 4) ;; tab width to 4 spaces
+(save-place-mode 1) ;; remembers cursor position
+(recentf-mode 1) ;; turns on recent file tracker. Use M-x recentf-open-files
+(global-auto-revert-mode) ;; Automatically refreshes buffers in Emacs when the underlying file has been changed on disk by an external program
+
+;; Whole line or region (better C-w)
+(use-package whole-line-or-region)
 
 ;; M-a and M-e
 (setq sentence-end-double-space nil)
@@ -87,10 +70,14 @@
 ;; Tramp/Dired copy/paste DWIM
 (setq dired-dwim-target t)
 
-;; delete to trash, undo limit, kill ring max
+;; Delete to trash, undo limit, kill ring max
 (setq delete-by-moving-to-trash t
       undo-limit 80000000
       kill-ring-max 200)
+
+;; Start server
+;; Allows emacsclient to reuse sessions.
+(server-start)
 
 ;; Calendar
 (with-eval-after-load 'holidays
@@ -112,13 +99,33 @@
         (append holiday-local-holidays
                 holiday-christian-holidays)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Passwords
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'auth-source)
+(setq auth-sources '("~/.authinfo.gpg"))
+
+;; Set your default GPG key ID for all EasyPG / EPA operations
+(setq epa-file-encrypt-to '("D377615D1BC24A0D"))  ; Replace with your key ID
+;; Avoid getting prompted all the time for the password to your plstore
+(setq plstore-cache-passphrase-for-symmetric-encryption t)
+;; Disable key selection prompting completely
+(setq epa-file-select-keys nil)
+;; Ensure plstore also uses non-interactive key selection
+(with-eval-after-load 'plstore
+  (setq plstore-select-keys nil
+        plstore-encrypt-to "D377615D1BC24A0D"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package manager
 ;; straight.el installs packages directly from source.
 ;; use-package makes package configuration easier to read.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defvar bootstrap-version)
+;; Package initialization
+(with-eval-after-load 'package
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 
+(defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name
         "straight/repos/straight.el/bootstrap.el"
@@ -138,18 +145,13 @@
 (setq straight-use-package-by-default t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Whole line or region (better C-w)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package whole-line-or-region)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Completion framework
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; * `vertico`, `consult`, `orderless`, `marginalia` — completion framework
 ;; Vertico: the vertical completion UI 
 ;; Orderless: flexible space-separated matching
 ;; Marginalia: annotations next to candidates
-;; Consult: 
+;; Consult: acts as the Swiss Army knife that supercharges how you search, switch, and navigate through almost everything in your editor
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package vertico
   :init
@@ -166,6 +168,23 @@
   (marginalia-mode))
 
 (use-package consult)
+;; consult-buffer: 
+;; consult-ripgrep:
+;; consult-line: current buffer
+;; consult-history: past inputs
+;; consult-register and consult-mark
+
+(global-set-key
+ (kbd "C-x C-r")
+ #'consult-recent-file)
+
+;; (global-set-key
+;;  (kbd "C-s")
+;;  #'consult-line)
+
+(global-set-key
+ (kbd "C-c g")
+ #'consult-ripgrep)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; save history
@@ -222,6 +241,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package hydra)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outline 
 (defhydra hydra-outline (:color pink :hint nil)
   "
@@ -263,6 +283,7 @@ _<ESC>_: quit
 ;; Bind the hydra — pick whichever key you prefer
 (global-set-key (kbd "C-c o") 'hydra-outline/body)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Window Management
 (winner-mode 1)
 
@@ -369,9 +390,9 @@ _SPC_ cancel	_o_nly this   	_d_elete
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Avy-zap - zap to jump
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package avy-zap)
 (global-set-key (kbd "M-Z") 'avy-zap-up-to-char-dwim)
+(global-set-key (kbd "M-z") 'zap-up-to-char)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Project support
@@ -394,12 +415,6 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package treesit-auto
   :config
   (global-treesit-auto-mode))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Start server
-;; Allows emacsclient to reuse sessions.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(server-start)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Shows changed lines in the fringe:
@@ -484,11 +499,15 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package yasnippet
   :config
   (yas-global-mode))
+;; M-x yas-describe-tables
+;; M-x yas-visit-snippet-file
+;; M-x yas-new-snippet
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Spell checking
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq ispell-program-name "aspell")
+;; M-$ check spelling of last word
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Terminal inside Emacs
@@ -526,27 +545,6 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package multiple-cursors)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Recent files
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(global-set-key
- (kbd "C-x C-r")
- #'consult-recent-file)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Better searching
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (global-set-key
-;;  (kbd "C-s")
-;;  #'consult-line)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Ripgrep project search
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(global-set-key
- (kbd "C-c g")
- #'consult-ripgrep)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode
 ;;
 ;; Useful for notes and project planning.
@@ -561,17 +559,16 @@ _SPC_ cancel	_o_nly this   	_d_elete
               '("inbox.org" "todo.org" "schedule.org"
                 "caloutlook.org" "weberlab.org" "family.org" "gcal.org")))
 
-;; Global entry points Doom gave you under SPC o a / SPC X
 (global-set-key (kbd "C-c a") #'org-agenda)
 (global-set-key (kbd "C-c c") #'org-capture)
-(global-set-key (kbd "C-c l") #'org-store-link)
+(global-set-key (kbd "C-c l") #'org-store-link) ;; store a link to current location. Later, put this link in an org file with M-x org-insert-link
+
 ;; Your GTD agenda uses NEXT, so uncomment/adjust if you rely on it globally:
 ;; (setq org-todo-keywords
 ;;       '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "|" "DONE(d)" "KILL(k)")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Org-roam (+ UI) -- keys live under C-c r because C-c n
-;; is already your "no new students" snippet.
+;; Org-roam (+ UI) -- keys live under C-c r 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package org-roam
   :custom
@@ -611,7 +608,6 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package org-download
   :after org
   :config
-  ;; Doom sets this to 'attach so pasted images go through org-attach.
   (setq org-download-method 'attach
         org-download-image-org-width 450))
 
@@ -718,6 +714,63 @@ _SPC_ cancel	_o_nly this   	_d_elete
   ;; Attach to org-gcal hook
   (add-hook 'org-gcal-after-update-entry-functions #'my-org-gcal-set-calendar-tags))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org timegrid - SVG Calendar
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package org-timegrid
+  :straight (:host github :repo "Gleek/org-timegrid")
+  :demand t
+  :bind (("C-c C" . org-timegrid-week))
+  :init
+  ;; The symbol `agenda' means: read events from `org-agenda-files'.
+  (setq org-timegrid-org-files 'agenda
+
+        ;; Center today (or a date you jump to) in the visible range.
+        org-timegrid-range-alignment 'left
+
+        ;; Recommended compact scale; use 1.0 to match Emacs's default font.
+        org-timegrid-default-zoom 0.7
+
+        org-timegrid-start-hour 7
+
+        org-timegrid-org-capture-file
+        (expand-file-name "calendar.org" org-directory)
+        org-timegrid-org-capture-template
+        '(:target file
+                  :template "* %{title}\n%{time-range}\n%?")
+
+        ;; Save Org buffers immediately after edits made in the calendar.
+        org-timegrid-org-auto-save t
+
+        ;; Set this to nil if repeating entries should be hidden.
+        org-timegrid-org-show-repeaters t
+
+        ;; The first matching tag supplies an event's colour.
+        org-timegrid-org-tag-color-alist
+        '(("Work"     . indigo)
+          ("Family" . green)
+          ("Primary"  . yellow)
+          ("WeberLab"   . cyan)))
+  :config
+  (require 'org-timegrid-org))
+
+;; ;; This is part of the same package. It adds a read-only day strip to Org
+;; ;; Agenda; pressing RET on the strip opens the editable week view.
+;; (use-package org-timegrid-agenda
+;;   :straight nil
+;;   :after org-agenda
+;;   :demand t
+;;   :init
+;;   ;; nil inserts the strip at the top. To place it after a particular custom
+;;   ;; agenda block, use a regexp matching that block's heading instead.
+;;   (setq org-timegrid-agenda-insert-after nil
+;;         org-timegrid-agenda-separator t
+;;         org-timegrid-agenda-minutes-before 180
+;;         org-timegrid-agenda-minutes-after 180)
+;;   :config
+;;   (org-timegrid-agenda-mode 1))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org agenda
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -773,62 +826,6 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (with-eval-after-load 'org-agenda
   (set-face-attribute 'org-agenda-current-time nil
                       :foreground "red" :weight 'bold))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Org timegrid
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(use-package org-timegrid
-  :straight (:host github :repo "Gleek/org-timegrid")
-  :demand t
-  :bind (("C-c C" . org-timegrid-week))
-  :init
-  ;; The symbol `agenda' means: read events from `org-agenda-files'.
-  (setq org-timegrid-org-files 'agenda
-
-        ;; Center today (or a date you jump to) in the visible range.
-        org-timegrid-range-alignment 'left
-
-        ;; Recommended compact scale; use 1.0 to match Emacs's default font.
-        org-timegrid-default-zoom 0.7
-
-        org-timegrid-start-hour 7
-
-        org-timegrid-org-capture-file
-        (expand-file-name "calendar.org" org-directory)
-        org-timegrid-org-capture-template
-        '(:target file
-                  :template "* %{title}\n%{time-range}\n%?")
-
-        ;; Save Org buffers immediately after edits made in the calendar.
-        org-timegrid-org-auto-save t
-
-        ;; Set this to nil if repeating entries should be hidden.
-        org-timegrid-org-show-repeaters t
-
-        ;; The first matching tag supplies an event's colour.
-        org-timegrid-org-tag-color-alist
-        '(("Work"     . indigo)
-          ("Family" . green)
-          ("Primary"  . yellow)
-          ("WeberLab"   . cyan)))
-  :config
-  (require 'org-timegrid-org))
-
-;; ;; This is part of the same package. It adds a read-only day strip to Org
-;; ;; Agenda; pressing RET on the strip opens the editable week view.
-;; (use-package org-timegrid-agenda
-;;   :straight nil
-;;   :after org-agenda
-;;   :demand t
-;;   :init
-;;   ;; nil inserts the strip at the top. To place it after a particular custom
-;;   ;; agenda block, use a regexp matching that block's heading instead.
-;;   (setq org-timegrid-agenda-insert-after nil
-;;         org-timegrid-agenda-separator t
-;;         org-timegrid-agenda-minutes-before 180
-;;         org-timegrid-agenda-minutes-after 180)
-;;   :config
-;;   (org-timegrid-agenda-mode 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org journal
