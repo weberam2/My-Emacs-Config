@@ -780,7 +780,7 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package org-timegrid
   :straight (:host github :repo "Gleek/org-timegrid")
   :demand t
-  :bind (("C-c T" . org-timegrid-week))
+  :bind (("C-c C" . org-timegrid-week))
   :init
   ;; The symbol `agenda' means: read events from `org-agenda-files'.
   (setq org-timegrid-org-files 'agenda
