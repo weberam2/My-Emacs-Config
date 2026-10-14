@@ -496,6 +496,24 @@ _SPC_ cancel	_o_nly this   	_d_elete
 (use-package vterm)
 (use-package ghostel)
 
+;; Show the terminal in a bottom side window, 25% of the frame height
+(add-to-list 'display-buffer-alist
+             '("\\*ghostel"            ; regexp matching the buffer name
+               (display-buffer-in-side-window)
+               (side . bottom)
+               (slot . 0)
+               (window-height . 0.25)))
+
+;; Toggle it with a global key
+(defun my/toggle-ghostel ()
+  "Show the ghostel window, or hide it if it's already visible."
+  (interactive)
+  (if-let ((win (get-buffer-window "*ghostel*")))
+      (delete-window win)
+    (ghostel)))
+
+(global-set-key (kbd "C-c T") #'my/toggle-ghostel)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; File tree
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1353,6 +1371,85 @@ count only within it."
 ;; JSON support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (use-package json-mode)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Weather
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package sunshine
+  :straight (sunshine :host github :repo "aaronbieber/sunshine.el")
+  :bind (("C-c W" . sunshine-forecast))
+  :config
+  (setq sunshine-location "Vancouver,CA"
+        sunshine-show-icons t
+        sunshine-units 'metric
+        sunshine-appid (auth-source-pick-first-password
+                        :host "api.openweathermap.org"
+                        :user "apikey"))
+
+  (add-to-list 'display-buffer-alist
+               '("\\*Sunshine\\*"
+                 (display-buffer-at-bottom)
+                 (window-height . 0.3)))
+
+  (defun my/sunshine-build-simple-forecast (forecast)
+    "Like `sunshine-build-simple-forecast', but with extra fields."
+    (let* ((citylist (cdr (assq 'city forecast)))
+           (city (cdr (assq 'name citylist)))
+           (country (cdr (assq 'country citylist)))
+           (sym (sunshine-units-symbol))
+           (speed-unit (if (eq sunshine-units 'metric) "m/s" "mph")))
+      (list
+       (cons 'location (concat city ", " country))
+       (cons 'days
+             (cl-loop
+              for day across (cdr (assq 'list forecast)) collect
+              (let* ((main (cdr (assq 'main day)))
+                     (weather (elt (cdr (assq 'weather day)) 0))
+                     (wind (cdr (assq 'wind day)))
+                     (pop (cdr (assq 'pop day)))
+                     (rain (cdr (assq '3h (cdr (assq 'rain day))))))
+                (list
+                 (cons 'date (format-time-string
+                              "%a %b %e, %l %p"
+                              (seconds-to-time (cdr (assq 'dt day)))))
+                 (cons 'desc (capitalize (cdr (assq 'description weather))))
+                 (cons 'icon (cdr (assq 'icon weather)))
+                 (cons 'temp
+                       (list
+                        (cons 'min (format "%s %s" (round (cdr (assq 'temp_min main))) sym))
+                        (cons 'max (format "%s %s" (round (cdr (assq 'temp_max main))) sym))))
+                 (cons 'feels (format "%s %s" (round (cdr (assq 'feels_like main))) sym))
+                 (cons 'humidity (cdr (assq 'humidity main)))
+                 (cons 'wind (format "%s %s" (round (or (cdr (assq 'speed wind)) 0)) speed-unit))
+                 (cons 'pop (round (* 100 (or pop 0))))
+                 (cons 'rain (if rain (format "%s mm" rain) "-")))))))))
+
+  (defun my/sunshine-pivot-forecast-rows (forecast)
+    "Like `sunshine-pivot-forecast-rows', but with extra rows."
+    (cl-loop for day in (cdr (assq 'days forecast))
+             collect (cdr (assq 'date day)) into dates
+             collect (cdr (assq 'icon day)) into icons
+             collect (cdr (assq 'desc day)) into descs
+             collect (format "High: %s" (cdr (assq 'max (cdr (assq 'temp day))))) into highs
+             collect (format "Low:  %s" (cdr (assq 'min (cdr (assq 'temp day))))) into lows
+             collect (format "Feels: %s" (cdr (assq 'feels day))) into feels
+             collect (format "Humidity: %s%%" (cdr (assq 'humidity day))) into humids
+             collect (format "Wind: %s" (cdr (assq 'wind day))) into winds
+             collect (format "Precip: %s%%" (cdr (assq 'pop day))) into pops
+             collect (format "Rain: %s" (cdr (assq 'rain day))) into rains
+             finally (return (list (cons "icons" icons)
+                                   (cons "dates" dates)
+                                   (cons "descs" descs)
+                                   (cons "highs" highs)
+                                   (cons "lows" lows)
+                                   (cons "feels" feels)
+                                   (cons "humids" humids)
+                                   (cons "winds" winds)
+                                   (cons "pops" pops)
+                                   (cons "rains" rains)))))
+
+  (advice-add 'sunshine-build-simple-forecast :override #'my/sunshine-build-simple-forecast)
+  (advice-add 'sunshine-pivot-forecast-rows :override #'my/sunshine-pivot-forecast-rows))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Custom keybindings
