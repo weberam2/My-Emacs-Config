@@ -1,0 +1,1579 @@
+#+TITLE: My Emacs Configuration
+#+author: Alexander Weber
+#+PROPERTY: header-args:emacs-lisp :tangle yes :results silent
+
+* Basic settings for quick startup and convenience
+
+#+begin_src emacs-lisp
+  (setq byte-compile-warnings '(not obsolete))
+  (setq warning-suppress-log-types '((comp) (bytecomp)))
+  (setq native-comp-async-report-warnings-errors 'silent)
+
+#+end_src
+
+* General appearance
+
+#+begin_src emacs-lisp
+  (setopt inhibit-splash-screen t)
+  (setq inhibit-startup-screen t) ;; disable default splash screen
+  (setq-default
+   display-line-numbers-type 'relative) ;; relative line numbers
+  (global-display-line-numbers-mode) ;; line numbers for all modes
+  (add-hook 'pdf-view-mode-hook
+            (lambda () (setq-local display-line-numbers nil))) ;; disable line numbers for this mode
+  (add-hook 'org-timegrid-mode-hook
+            (lambda () (display-line-numbers-mode -1))) ;; disable line numbers for this mode
+  (column-number-mode) ;; show column number in mode line
+  (setq inhibit-startup-echo-area-message (user-login-name)) ;; Silence stupid startup message
+  (setopt display-time-default-load-average nil) ; this information is useless for most
+
+  ;; Default frame configuration: full screen, good-looking title bar on macOS
+  (setq frame-resize-pixelwise t)
+  (tool-bar-mode -1)                      ; All these tools are in the menu-bar anyway
+  (setq default-frame-alist
+        '((fullscreen . maximized)
+          (ns-appearance . dark)
+          (ns-transparent-titlebar . t)
+          (vertical-scroll-bars . nil) ;; hides scroll bar on the side
+          (horizontal-scroll-bars . nil)
+          (tool-bar-lines . 0)
+          (menu-bar-lines . 0)))  ;; hides graphical top menu
+
+  ;; Theme
+  ;; (load-theme 'modus-operandi t)
+  (load-theme 'modus-vivendi t)
+#+end_src
+
+* Better defaults
+
+#+begin_src emacs-lisp
+  (setopt make-backup-files nil) ;; don't create those files that end in ~
+  (setopt create-lockfiles nil) ;; don't create those file that start with .#
+  (setq auto-save-default nil) ;; stops emacs from creating the #filename# files
+  (setopt use-short-answers t) ; answer with y or n
+  (setopt initial-major-mode 'fundamental-mode)  ; default mode for the *scratch* buffer
+  (setq ring-bell-function 'ignore) ;; no annoying bell
+  (setq-default indent-tabs-mode nil) ;; use spaces instead of tabs
+  (setq-default tab-width 4) ;; tab width to 4 spaces
+  (save-place-mode 1) ;; remembers cursor position
+  (recentf-mode 1) ;; turns on recent file tracker. Use M-x recentf-open-files
+  (global-auto-revert-mode) ;; Automatically refreshes buffers in Emacs when the underlying file has been changed on disk by an external program
+
+  ;; M-a and M-e
+  (setq sentence-end-double-space nil)
+
+  ;; Replace list-buffers with ibuffer
+  (global-set-key [remap list-buffers] 'ibuffer)
+
+  ;; Better other window
+  (global-set-key (kbd "M-o") 'other-window)
+
+  ;; Tramp/Dired copy/paste DWIM
+  (setq dired-dwim-target t)
+
+  ;; Delete to trash, undo limit, kill ring max
+  (setq delete-by-moving-to-trash t
+        undo-limit 80000000
+        kill-ring-max 200)
+
+  ;; Start server
+  ;; Allows emacsclient to reuse sessions.
+  (require 'server)
+  (unless (server-running-p) (server-start))
+
+  ;; Whole line or region (better C-w)
+  (use-package whole-line-or-region)
+
+  ;; Calendar
+  (with-eval-after-load 'holidays
+    ;; BC statutory holidays
+    (setq holiday-local-holidays
+          '((holiday-fixed 1 1 "New Year's Day")
+            (holiday-float 2 1 3 "Family Day")             ; 3rd Monday in Feb
+            (holiday-float 5 1 -1 "Victoria Day" 24)       ; Monday before May 25
+            (holiday-fixed 7 1 "Canada Day")
+            (holiday-float 8 1 1 "BC Day")                 ; 1st Monday in Aug
+            (holiday-float 9 1 1 "Labour Day")             ; 1st Monday in Sept
+            (holiday-fixed 9 30 "National Day for Truth and Reconciliation")
+            (holiday-float 10 1 2 "Thanksgiving")          ; 2nd Monday in Oct
+            (holiday-fixed 11 11 "Remembrance Day")
+            (holiday-fixed 12 25 "Christmas Day")))
+    ;; Only show BC holidays plus Easter/Good Friday (Christian list).
+    ;; This replaces the default US, Hebrew, Islamic, etc. lists.
+    (setq calendar-holidays
+          (append holiday-local-holidays
+                  holiday-christian-holidays)))
+#+end_src
+
+* Passwords
+
+#+begin_src emacs-lisp
+  (require 'auth-source)
+  (setq auth-sources '("~/.authinfo.gpg"))
+
+  ;; Set your default GPG key ID for all EasyPG / EPA operations
+  (setq epa-file-encrypt-to '("D377615D1BC24A0D"))  ; Replace with your key ID
+  ;; Avoid getting prompted all the time for the password to your plstore
+  (setq plstore-cache-passphrase-for-symmetric-encryption t)
+  ;; Disable key selection prompting completely
+  (setq epa-file-select-keys nil)
+  ;; Ensure plstore also uses non-interactive key selection
+  (with-eval-after-load 'plstore
+    (setq plstore-select-keys nil
+          plstore-encrypt-to "D377615D1BC24A0D"))
+#+end_src
+
+* Completion framework
+
+- Vertico: the vertical completion UI
+- Orderless: flexible space-separated matching
+- Marginalia: annotations next to candidates
+- Consult: acts as the Swiss Army knife that supercharges how you search, switch, and navigate through almost everything in your editor
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :init
+    (vertico-mode))
+  (with-eval-after-load 'vertico
+    (define-key vertico-map (kbd "DEL") #'vertico-directory-delete-char))
+
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic)))
+
+  (use-package marginalia
+    :init
+    (marginalia-mode))
+
+  (use-package consult)
+  ;; consult-buffer: 
+  ;; consult-ripgrep:
+  ;; consult-line: current buffer
+  ;; consult-history: past inputs
+  ;; consult-register and consult-mark
+
+  (global-set-key
+   (kbd "C-x C-r")
+   #'consult-recent-file)
+
+  ;; (global-set-key
+  ;;  (kbd "C-s")
+  ;;  #'consult-line)
+
+  (global-set-key
+   (kbd "C-c g")
+   #'consult-ripgrep)
+#+end_src
+
+* Save history
+
+#+begin_src emacs-lisp
+  (use-package savehist
+    :init
+    (savehist-mode 1)
+    :custom
+    (history-length 10000)
+    (savehist-additional-variables
+     '(kill-ring
+       search-ring
+       regexp-search-ring)))
+#+end_src
+
+* Keybindings
+#+begin_src emacs-lisp
+  (defun insert-current-date ()
+    "Insert current date in yyyy-mm-dd format."
+    (interactive)
+    (insert (format-time-string "%Y-%m-%d")))
+
+  (global-set-key (kbd "C-c d") #'insert-current-date)
+#+end_src
+
+* Helpful keybinding hints
+
+#+begin_src emacs-lisp
+  (setq which-key-idle-delay 0.01)
+
+  (use-package which-key
+    :config
+    (which-key-mode))
+#+end_src
+
+* Rainbow delimiters
+
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+* God mode
+
+- g is Meta
+- . is repeat
+- The literal key (SPC) is sticky.
+- This means you don't have to enter SPC repeatedly for key bindings such as C-x r t.
+- Entering the literal key again toggles its state.
+
+#+begin_src emacs-lisp
+  ;; (setq god-mode-enable-function-key-translation nil) ;; function keys remain function keys
+  ;; (use-package god-mode)
+  ;; (god-mode) ;; activate god mode
+  ;; (global-set-key (kbd "<escape>") #'god-local-mode)
+  ;; (custom-set-faces
+  ;;  '(god-mode-lighter ((t (:inherit error)))))
+  ;; (defun my-god-mode-update-cursor-type ()
+  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+  ;; (define-key god-local-mode-map (kbd ".") #'repeat)
+  ;; (define-key god-local-mode-map (kbd "i") #'god-local-mode)
+  ;; (global-set-key (kbd "<escape>") #'(lambda () (interactive) (god-local-mode 1)))
+  ;; (which-key-enable-god-mode-support)
+#+end_src
+
+* Hydra
+
+#+begin_src emacs-lisp
+  (use-package hydra)
+#+end_src
+
+** Outline
+
+#+begin_src emacs-lisp
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Outline 
+  (defhydra hydra-outline (:color pink :hint nil)
+    "
+  ^Navigate^              ^Visibility^           ^Structure^
+  ^^^^^^^^----------------------------------------------------------------
+  _n_: next heading       _TAB_: cycle           _h_: promote
+  _p_: prev heading       _a_: show all          _l_: demote
+  _f_: forward same lvl   _s_: show subtree      _k_: move up
+  _b_: backward same lvl  _S_: hide subtree      _j_: move down
+  _u_: up heading         _d_: hide body         _/_: insert heading
+  ^ ^                     _q_: hide leaves
+  ^^^^^^^^----------------------------------------------------------------
+  _<ESC>_: quit
+  "
+    ;; Navigate
+    ("n" outline-next-visible-heading)
+    ("p" outline-previous-visible-heading)
+    ("f" outline-forward-same-level)
+    ("b" outline-backward-same-level)
+    ("u" outline-up-heading)
+
+    ;; Visibility
+    ("TAB" outline-toggle-children)
+    ("a" outline-show-all)
+    ("s" outline-show-subtree)
+    ("S" outline-hide-subtree)
+    ("d" outline-hide-body)
+    ("q" outline-hide-leaves)
+
+    ;; Structure
+    ("h" outline-promote)
+    ("l" outline-demote)
+    ("k" outline-move-subtree-up)
+    ("j" outline-move-subtree-down)
+    ("/" outline-insert-heading)
+
+    ("<ESC>" nil :exit t))
+
+  ;; Bind the hydra — pick whichever key you prefer
+  (global-set-key (kbd "C-c o") 'hydra-outline/body)
+#+end_src
+
+** Window Management
+
+#+begin_src emacs-lisp
+  (winner-mode 1)
+  (use-package ace-window)
+
+  (defun ace-maximize-window ()
+    "Toggle between maximizing the current window and restoring previous layout."
+    (interactive)
+    (if (one-window-p)
+        (winner-undo)
+      (delete-other-windows)))
+
+  (defun hydra-move-splitter-left (arg)
+    (interactive "p")
+    (if (window-in-direction 'right)
+        (enlarge-window-horizontally (- arg))
+      (enlarge-window-horizontally arg)))
+
+  (defun hydra-move-splitter-down (arg)
+    (interactive "p")
+    (if (window-in-direction 'up)
+        (enlarge-window arg)
+      (shrink-window arg)))
+
+  (defun hydra-move-splitter-up (arg)
+    (interactive "p")
+    (if (window-in-direction 'down)
+        (enlarge-window arg)
+      (shrink-window arg)))
+
+  (defun hydra-move-splitter-right (arg)
+    (interactive "p")
+    (if (window-in-direction 'right)
+        (enlarge-window-horizontally arg)
+      (enlarge-window-horizontally (- arg))))
+
+  (defhydra hydra-window ()
+    "
+  Movement^^        ^Split^         ^Switch^		^Resize^
+  ----------------------------------------------------------------
+  _h_ ←       	_\\_ vertical    _b_uffer		_H_ X←
+  _j_ ↓        	_-_ horizontal	_f_ind files	_J_ X↓
+  _k_ ↑        	_z_ undo      	_a_ce 1		_K_ X↑
+  _l_ →        	_Z_ reset      	_s_wap		_L_ X→
+  _F_ollow		_D_lt Other   	_S_ave		max_i_mize
+  _SPC_ cancel	_o_nly this   	_d_elete	
+  "
+    ("h" windmove-left )
+    ("j" windmove-down )
+    ("k" windmove-up )
+    ("l" windmove-right )
+    ("H" hydra-move-splitter-left)
+    ("J" hydra-move-splitter-down)
+    ("K" hydra-move-splitter-up)
+    ("L" hydra-move-splitter-right)
+    ("b" switch-to-buffer)     ;; Replaced helm-mini with built-in
+    ("f" find-file)            ;; Replaced helm-find-files with built-in
+    ("F" follow-mode)
+    ("a" (lambda ()
+           (interactive)
+           (ace-window 1)
+           (add-hook 'ace-window-end-once-hook
+                     'hydra-window/body))
+     )
+    ("\\" (lambda ()
+            (interactive)
+            (split-window-right)
+            (windmove-right))
+     )
+    ("-" (lambda ()
+           (interactive)
+           (split-window-below)
+           (windmove-down))
+     )
+    ("s" (lambda ()
+           (interactive)
+           (ace-window 4)
+           (add-hook 'ace-window-end-once-hook
+                     'hydra-window/body)))
+    ("S" save-buffer)
+    ("d" delete-window)
+    ("D" (lambda ()
+           (interactive)
+           (ace-window 16)
+           (add-hook 'ace-window-end-once-hook
+                     'hydra-window/body))
+     )
+    ("o" delete-other-windows)
+    ("i" ace-maximize-window)
+    ("z" (progn
+           (winner-undo)
+           (setq this-command 'winner-undo))
+     )
+    ("Z" winner-redo)
+    ("SPC" nil)
+    )
+
+  (global-set-key (kbd "C-c b") 'hydra-window/body)
+#+end_src
+
+* Avy
+
+Jump around text
+
+#+begin_src emacs-lisp
+  (use-package avy)
+  (require 'avy)
+  (global-set-key (kbd "C-c j") 'avy-goto-char-timer)
+#+end_src
+
+** Zap
+
+#+begin_src emacs-lisp
+  (use-package avy-zap)
+  (global-set-key (kbd "M-Z") 'avy-zap-up-to-char-dwim)
+  (global-set-key (kbd "M-z") 'zap-up-to-char)
+#+end_src
+
+* Project support
+
+- Detects the "current project," usually by finding a version-control root (a .git directory, for example)
+- Provides commands scoped to that project, all under the C-x p prefix:
+- C-x p f: find file in project
+- C-x p g: grep (ripgrep/grep) in project
+- C-x p b: switch to a project buffer
+- C-x p p: switch to another project
+- C-x p d: open Dired at the project root
+- C-x p k: kill all project buffers
+- C-x p ! / C-x p &: run a shell command at the project root
+  
+#+begin_src emacs-lisp
+  (use-package project)
+#+end_src
+
+* Treesitter
+
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :config
+    (global-treesit-auto-mode))
+#+end_src
+
+* Shows changed lines in the fringe
+
+#+begin_src emacs-lisp
+  (use-package diff-hl
+    :config
+    (global-diff-hl-mode))
+#+end_src
+
+* Format on save
+
+#+begin_src emacs-lisp
+  (use-package apheleia
+    :config
+    (apheleia-global-mode +1))
+#+end_src
+
+* Git
+
+#+begin_src emacs-lisp
+  (use-package magit)
+  (global-set-key
+   (kbd "C-x g")
+   #'magit-status)
+#+end_src
+
+* Company - completion
+
+#+begin_src emacs-lisp
+  (use-package company
+    :config
+    (global-company-mode))
+#+end_src
+
+* Syntax checking
+
+#+begin_src emacs-lisp
+  (use-package flymake)
+#+end_src
+
+* Language Servers
+
+Built into Emacs 29+
+
+#+begin_src emacs-lisp
+  (use-package eglot)
+
+  (add-hook 'python-mode-hook 'eglot-ensure)
+  (add-hook 'ess-r-mode-hook 'eglot-ensure)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; LSP mode
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; (use-package lsp-mode)
+  ;; (require 'lsp-mode)
+  ;; ;; Enable global lsp-mode (optional, but convenient for many languages)
+  ;; (setq lsp-mode-hook
+  ;;       '(lsp-enable-which-key-integration t)) ; Optional: Integrate with which-key if you use it
+  ;; (global-lsp-mode)
+
+  ;; ;; Or, enable it per-mode:
+  ;; ;; (add-hook 'python-mode-hook #'lsp)       ; For Python
+  ;; ;; (add-hook 'c++-mode-hook #'lsp)         ; For C++
+  ;; ;; (add-hook 'js-mode-hook #'lsp)          ; For JavaScript
+  ;; ;; (add-hook 'typescript-mode-hook #'lsp)  ; For TypeScript
+  ;; ;; (add-hook 'rust-mode-hook #'lsp)        ; For Rust
+
+  ;; ;; Optional: Improve UI with lsp-ui
+  ;; (add-hook 'lsp-mode-hook #'lsp-ui-mode)
+
+  ;; ;; Optional: Use company-lsp for completion
+  ;; (add-hook 'lsp-mode-hook #'company-lsp-mode)
+  ;; (setq company-idle-delay 0.0) ; Aggressive completion
+
+  ;; ;; Other common settings
+  ;; (setq lsp-log-io t) ; Enable logging for debugging
+  ;; (setq lsp-enable-symbol-code-actions t)
+  ;; (setq lsp-eldoc-render-all t)
+  ;; (setq lsp-signature-auto-activate t)
+  ;; (setq lsp-completion-show-detail t)
+  ;; (setq lsp-completion-show-kind t)
+#+end_src
+
+* Snippets
+
+- M-x yas-describe-tables
+- M-x yas-visit-snippet-file
+- M-x yas-new-snippet
+
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :config
+    (yas-global-mode))
+  (use-package yasnippet-snippets :after yasnippet)
+#+end_src
+
+* Spell check
+
+M-$ check spelling of last word
+
+#+begin_src emacs-lisp
+  (setq ispell-program-name "aspell")
+#+end_src
+
+* Terminals
+
+#+begin_src emacs-lisp
+  (use-package vterm)
+  (use-package ghostel)
+
+  ;; Show the terminal in a bottom side window, 25% of the frame height
+  (add-to-list 'display-buffer-alist
+               '("\\*ghostel"            ; regexp matching the buffer name
+                 (display-buffer-in-side-window)
+                 (side . bottom)
+                 (slot . 0)
+                 (window-height . 0.25)))
+
+  ;; Toggle it with a global key
+  (defun my/toggle-ghostel ()
+    "Show the ghostel window, or hide it if it's already visible."
+    (interactive)
+    (if-let ((win (get-buffer-window "*ghostel*")))
+        (delete-window win)
+      (ghostel)))
+
+  (global-set-key (kbd "C-c T") #'my/toggle-ghostel)
+#+end_src
+
+* File tree
+
+#+begin_src emacs-lisp
+  (use-package treemacs)
+  (global-set-key (kbd "C-c e") #'treemacs)
+#+end_src
+
+* Multi-cursor
+
+#+begin_src emacs-lisp
+  (use-package multiple-cursors)
+#+end_src
+
+* Org
+
+#+begin_src emacs-lisp
+  (use-package org)
+
+  (with-eval-after-load 'org
+  (set-face-attribute 'org-level-1 nil
+                      :height 1.6
+                      :weight 'bold)
+
+  (set-face-attribute 'org-level-2 nil
+                      :height 1.45
+                      :weight 'bold)
+
+  (set-face-attribute 'org-level-3 nil
+                      :height 1.3
+                      :weight 'bold)
+
+  (set-face-attribute 'org-level-4 nil
+                      :height 1.15
+                      :weight 'bold))
+
+  (setq org-directory
+        (expand-file-name "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/"))
+
+  (setq org-agenda-files
+        (mapcar (lambda (file) (expand-file-name file org-directory))
+                '("inbox.org" "todo.org" "schedule.org"
+                  "caloutlook.org" "weberlab.org" "family.org" "gcal.org")))
+
+  (global-set-key (kbd "C-c a") #'org-agenda)
+  (global-set-key (kbd "C-c c") #'org-capture)
+  (global-set-key (kbd "C-c l") #'org-store-link) ;; store a link to current location. Later, put this link in an org file with M-x org-insert-link
+
+  ;; Your GTD agenda uses NEXT, so uncomment/adjust if you rely on it globally:
+  ;; (setq org-todo-keywords
+  ;;       '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "|" "DONE(d)" "KILL(k)")))
+#+end_src
+
+** Org-roam (+ UI)
+
+keys live under C-c r
+
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :custom
+    (org-roam-directory
+     (expand-file-name "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/roam/"))
+    :bind (("C-c r f" . org-roam-node-find)
+           ("C-c r i" . org-roam-node-insert)
+           ("C-c r l" . org-roam-buffer-toggle)
+           ("C-c r c" . org-roam-capture))
+    :config
+    (org-roam-db-autosync-mode))
+
+  (use-package websocket
+    :after org-roam)
+
+  (use-package org-roam-ui
+    :after org-roam
+    :config
+    (setq org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t))
+#+end_src
+
+** Org attachments / images
+
+Timestamp-based attachment folders instead of random IDs.
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org-attach
+    (setq org-attach-auto-tag nil
+          org-attach-store-link-p 'file
+          org-attach-id-to-path-function-list
+          '(org-attach-id-ts-folder-format
+            org-attach-id-uuid-folder-format
+            org-attach-id-fallback-folder-format)))
+
+  (use-package org-download
+    :after org
+    :config
+    (setq org-download-method 'attach
+          org-download-image-org-width 450))
+#+end_src
+
+** Org capture (Inbox, Schedule, and mu4e email workflow)
+
+#+begin_src emacs-lisp
+  (setq org-capture-templates
+        '(("i" "Inbox" entry
+           (file "inbox.org")
+           "* TODO %?\n/Entered on/ %U")
+          
+          ("s" "Schedule Meeting" entry
+           (file+headline "agenda.org" "Future")
+           "* %? :meeting:\n<%<%Y-%m-%d %a %H:00>>")
+          
+          ("m" "Email Workflow")
+          ("md" "Inbox Todo w Deadline" entry
+           (file+headline "todo.org" "Inbox")
+           "* TODO %:subject\n%:fromname due %a\nDEADLINE: %^t\n\n%i"
+           :immediate-finish t
+           :prepend t)
+          ("mt" "Inbox Todo w Schedule" entry
+           (file+headline "todo.org" "Inbox")
+           "* TODO %:subject\n%:fromname entered on %a\nSCHEDULED:%t\n\n%i"
+           :immediate-finish t
+           :prepend t)
+
+          ("t" "Todo")
+          ("td" "Todo w Deadline" entry
+           (file+headline "todo.org" "Inbox")
+           "* TODO %?\nDue by DEADLINE: %^t\n%i"
+           :prepend t)
+          ("tt" "Todo w Schedule" entry
+           (file+headline "todo.org" "Inbox")
+           "* TODO %?\nEntered on %a\nSCHEDULED:%t\n%i"
+           :prepend t)
+
+          ;; Google Calendar Sub-Menu (Time Ranges via %^T)
+          ;;   (setq org-capture-templates
+          ;; `(("a" "Appointment" entry (file ,(concat org-directory "/gcal.org"))
+          ;;   "* %?\n:PROPERTIES:\n:calendar-id:\tFirst.Last@gmail.com\n:END:\n:org-gcal:\n%^T--%^T\n:END:\n\n" :jump-to-captured t)))
+          ("c" "Calendar")
+          ("cg" "Primary Google Calendar" entry
+           (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/gcal.org")
+           "* %? :Primary:\n")
+          ("cf" "Family Calendar" entry
+           (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/family.org")
+           "* %? :Family:\n")
+          ("cw" "WeberLab Calendar" entry
+           (file "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/weberlab.org")
+           "* %? :WeberLab:\n")))
+
+  (defun org-capture-inbox ()
+    "Store a link to the current thing, then capture to the inbox."
+    (interactive)
+    (call-interactively 'org-store-link)
+    (org-capture nil "i"))
+
+  (global-set-key (kbd "C-c i") #'org-capture-inbox)
+
+  ;; delete frame when done
+  (add-hook 'org-capture-after-finalize-hook
+            (lambda ()
+              (when (equal (frame-parameter nil 'name) "org-capture")
+                (delete-frame))))
+#+end_src
+
+** Sync org and gcal
+
+if you need to force a reset:
+
+(progn
+(setq org-gcal--sync-tokens nil)
+(org-gcal-fetch))
+
+#+begin_src emacs-lisp
+  (use-package org-gcal
+    :init
+    (let* ((auth (car (auth-source-search :max 1
+                                          :host "google-calendar"
+                                          :require '(:user :secret))))
+           (client-id (and auth (or (plist-get auth :user) (plist-get auth :login))))
+           (client-secret (and auth (auth-info-password auth))))
+      (if (and client-id client-secret)
+          (setq org-gcal-client-id client-id
+                org-gcal-client-secret client-secret)
+        (message "Warning: Could not load google-calendar credentials from auth-source!")))
+    :config
+    (setq org-gcal-file-alist
+          '(("9cb3fa6ea68155398c47cb0d3bcc75a325bbb754adbe80d3b8dbf62970a5323f@group.calendar.google.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/family.org")
+            ("weberam2@gmail.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/gcal.org")
+            ("sns1ipmdf7kklu77b3q9ibg0nk@group.calendar.google.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/weberlab.org")))
+    (defun my-org-gcal-set-calendar-tags (calendar-id &optional _event _update-mode)
+      "Automatically add tags to headlines based on CALENDAR-ID or headline property."
+      (let* ((cal-id (or calendar-id (org-entry-get (point) "calendar-id") ""))
+             (tag (cond
+                   ((string-match-p "9cb3f" cal-id) "Family")
+                   ((string-match-p "sns1i" cal-id) "WeberLab")
+                   ((string-match-p "weberam2@gmail\\.com" cal-id) "Primary")
+                   (t nil))))
+        (when tag
+          (let ((current-tags (org-get-tags nil t)))
+            (unless (member tag current-tags)
+              (org-set-tags (cons tag current-tags)))))))
+
+    ;; Attach to org-gcal hook
+    (add-hook 'org-gcal-after-update-entry-functions #'my-org-gcal-set-calendar-tags))
+#+end_src
+
+** Org timegrid - SVG Calendar
+
+#+begin_src emacs-lisp
+  (use-package org-timegrid
+    :straight (:host github :repo "Gleek/org-timegrid")
+    :demand t
+    :bind (("C-c C" . org-timegrid-week))
+    :init
+    ;; The symbol `agenda' means: read events from `org-agenda-files'.
+    (setq org-timegrid-org-files 'agenda
+
+          ;; Center today (or a date you jump to) in the visible range.
+          org-timegrid-range-alignment 'left
+
+          ;; Recommended compact scale; use 1.0 to match Emacs's default font.
+          org-timegrid-default-zoom 0.7
+
+          org-timegrid-start-hour 7
+
+          org-timegrid-org-capture-file
+          (expand-file-name "calendar.org" org-directory)
+          org-timegrid-org-capture-template
+          '(:target file
+                    :template "* %{title}\n%{time-range}\n%?")
+
+          ;; Save Org buffers immediately after edits made in the calendar.
+          org-timegrid-org-auto-save t
+
+          ;; Set this to nil if repeating entries should be hidden.
+          org-timegrid-org-show-repeaters t
+
+          ;; The first matching tag supplies an event's colour.
+          org-timegrid-org-tag-color-alist
+          '(("Work"     . indigo)
+            ("Family" . green)
+            ("Primary"  . yellow)
+            ("WeberLab"   . cyan)))
+    :config
+    (require 'org-timegrid-org))
+
+  ;; ;; This is part of the same package. It adds a read-only day strip to Org
+  ;; ;; Agenda; pressing RET on the strip opens the editable week view.
+  ;; (use-package org-timegrid-agenda
+  ;;   :straight nil
+  ;;   :after org-agenda
+  ;;   :demand t
+  ;;   :init
+  ;;   ;; nil inserts the strip at the top. To place it after a particular custom
+  ;;   ;; agenda block, use a regexp matching that block's heading instead.
+  ;;   (setq org-timegrid-agenda-insert-after nil
+  ;;         org-timegrid-agenda-separator t
+  ;;         org-timegrid-agenda-minutes-before 180
+  ;;         org-timegrid-agenda-minutes-after 180)
+  ;;   :config
+  ;;   (org-timegrid-agenda-mode 1))
+#+end_src
+
+** Org agenda
+
+#+begin_src emacs-lisp
+  ;; start on today
+  (setq org-agenda-start-on-weekday nil)
+
+  ;; fancy priorities
+  (use-package org-fancy-priorities
+    :hook (org-mode . org-fancy-priorities-mode)
+    :config
+    (setq org-fancy-priorities-list '((?A . "🚨")
+                                      (?B . "🔶")
+                                      (?C . "⭐"))))
+
+  (setq org-agenda-block-separator 8411)
+
+  (setq org-agenda-custom-commands
+        '(("v" "A better agenda view"
+           ((agenda ""
+                    ((org-agenda-span 1)
+                     (org-agenda-start-day "0d")
+                     (org-agenda-entry-types '(:deadline))
+                     (org-deadline-warning-days 0)
+                     (org-agenda-prefix-format "  %?-12t% s %5e ")
+                     (org-agenda-overriding-header "Due today:")))
+            (agenda ""
+                    ((org-agenda-prefix-format "  %?-12t% s %5e ")))
+            (alltodo ""
+                     ((org-agenda-prefix-format "  %i %-12:c %5e ")))))
+          ("g" "Get Things Done (GTD)"
+           ((agenda ""
+                    ((org-agenda-skip-function
+                      '(org-agenda-skip-entry-if 'deadline))
+                     (org-deadline-warning-days 0)))
+            (todo "NEXT"
+                  ((org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'deadline))
+                   (org-agenda-prefix-format "  %i %-12:c [%e] ")
+                   (org-agenda-overriding-header "\nTasks\n")))
+            (agenda nil
+                    ((org-agenda-entry-types '(:deadline))
+                     (org-agenda-format-date "")
+                     (org-deadline-warning-days 7)
+                     (org-agenda-skip-function
+                      '(org-agenda-skip-entry-if 'notregexp "\\* NEXT"))
+                     (org-agenda-overriding-header "\nDeadlines")))
+            (tags-todo "inbox"
+                       ((org-agenda-prefix-format "  %?-12t% s")
+                        (org-agenda-overriding-header "\nInbox\n")))
+            (tags "CLOSED>=\"<today>\""
+                  ((org-agenda-overriding-header "\nCompleted today\n")))))))
+
+  (with-eval-after-load 'org-agenda
+    (set-face-attribute 'org-agenda-current-time nil
+                        :foreground "red" :weight 'bold))
+#+end_src
+
+** Org journal
+
+#+begin_src emacs-lisp
+  (use-package org-journal
+    :bind ("C-c J" . org-journal-new-entry)
+    :custom
+    (org-journal-file-format "%Y-%m-%d.org")
+    ;; ASSUMPTION: adjust if your journal files lived somewhere else under Doom.
+    (org-journal-dir (expand-file-name "journal/" org-directory)))
+#+end_src
+
+* Email
+
+** .eml files: HTML mode, RET inserts \<br\>
+
+#+begin_src emacs-lisp
+  (add-to-list 'auto-mode-alist '("\\.eml\\'" . html-mode))
+
+  (defun my/insert-br-newline ()
+    "Insert <br> followed by a newline."
+    (interactive)
+    (insert "<br>\n"))
+
+  (add-hook 'html-mode-hook
+            (lambda ()
+              (local-set-key (kbd "RET") #'my/insert-br-newline)))
+#+end_src
+
+** mu4e
+
+mu4e is NOT installed through straight/MELPA. It ships
+with the `mu' program, so we load it from the system
+install. ASSUMPTION: mu was installed under /usr/local
+(your mu binary is /usr/local/bin/mu). Verify with:
+ls /usr/local/share/emacs/site-lisp/mu4e
+
+#+begin_src emacs-lisp
+  (setq mu4e-use-fancy-chars t)
+  (setq mu4e-headers-unread-mark    '("u" . "📩 "))
+  (setq mu4e-headers-draft-mark     '("D" . "🚧 "))
+  (setq mu4e-headers-flagged-mark   '("F" . "🚩 "))
+  (setq mu4e-headers-new-mark       '("N" . "✨ "))
+  (setq mu4e-headers-passed-mark    '("P" . "↪ "))
+  (setq mu4e-headers-replied-mark   '("R" . "↩ "))
+  (setq mu4e-headers-seen-mark      '("S" . " "))
+  (setq mu4e-headers-trashed-mark   '("T" . "🗑️"))
+  (setq mu4e-headers-attach-mark    '("a" . "📎 "))
+  (setq mu4e-headers-encrypted-mark '("x" . "🔑 "))
+  (setq mu4e-headers-signed-mark    '("s" . "🖊 "))
+  (setq mu4e-headers-personal-mark '("p" . ""))
+
+  (setq message-kill-buffer-on-exit t) ;; kill buffer after send
+
+  (use-package org-mime
+    :config
+    (setq org-mime-export-options '(:section-numbers nil
+                                                     :with-author nil
+                                                     :with-toc nil)))
+
+  (use-package mu4e
+    :straight nil
+    :load-path "/usr/local/share/emacs/site-lisp/mu4e"
+    :commands (mu4e mu4e-compose-new)
+    :bind ("C-c m" . mu4e)
+    :config
+    ;; Basic settings
+    (setq mu4e-mu-binary "/usr/local/bin/mu"
+          mu4e-maildir "~/.mail/"
+          mu4e-attachment-dir "~/Downloads"
+          mu4e-get-mail-command "mbsync -a"
+          mu4e-update-interval 300        ; Update every 5 minutes
+          mu4e-compose-format-flowed t
+          mu4e-change-filenames-when-moving t
+          mu4e-headers-show-threads nil
+          mu4e-headers-include-related nil
+          message-signature-file "~/.mail/.signature"
+          message-send-mail-function 'smtpmail-send-it
+          gnutls-trustfiles
+          (append gnutls-trustfiles
+                  '("~/.config/protonmail/cert.pem")))
+
+       (setq mu4e-contexts
+          (list
+           ;; BCCHR
+           (make-mu4e-context
+            :name "BCCHR"
+            :match-func
+            (lambda (msg)
+              (when msg
+                (string-prefix-p "/bcchr" (mu4e-message-field msg :maildir))))
+            :vars '((user-full-name . "Alexander Weber")
+                    (user-mail-address . "aweber@bcchr.ca")
+                    (mu4e-sent-folder . "/bcchr/Sent")
+                    (mu4e-drafts-folder . "/bcchr/Drafts")
+                    (mu4e-trash-folder . "/bcchr/Trash")
+                    (smtpmail-smtp-server . "localhost")
+                    (smtpmail-smtp-user . "aweber@bcchr.ca")
+                    (smtpmail-stream-type . plain)
+                    (smtpmail-smtp-service . 1026)))
+           ;; ProtonMail
+           (make-mu4e-context
+            :name "ProtonMail"
+            :match-func
+            (lambda (msg)
+              (when msg
+                (string-prefix-p "/proton" (mu4e-message-field msg :maildir))))
+            :vars '((user-full-name . "Alexander Weber")
+                    (user-mail-address . "weberam2@proton.me")
+                    (mu4e-sent-folder . "/proton/Sent")
+                    (mu4e-drafts-folder . "/proton/Drafts")
+                    (mu4e-trash-folder . "/proton/Trash")
+                    (mu4e-refile-folder . "/proton/Archive")
+                    (smtpmail-smtp-server . "127.0.0.1")
+                    (smtpmail-smtp-user . "weberam2@proton.me")
+                    (smtpmail-stream-type . starttls)
+                    (smtpmail-smtp-service . 1025)))))
+
+         (setq mu4e-bookmarks
+        '((:name "BCCHR Inbox" :query "maildir:/bcchr/Inbox AND flag:unread" :key ?b)
+          (:name "ProtonMail Inbox" :query "maildir:/proton/Inbox AND flag:unread" :key ?p)
+          (:name "Gmail archive" :query "maildir:\"/gmail/[Gmail]/All Mail\"" :key ?g)
+          (:name "All Unread" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND flag:unread" :key ?u)
+          (:name "Today's messages" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND date:today..now" :key ?t)))
+  
+  (setq mu4e-maildir-shortcuts
+        '((:maildir "/bcchr/Inbox"  :key ?i)
+          (:maildir "/proton/Inbox" :key ?I)
+          (:maildir "/bcchr/Sent"   :key ?s)
+          (:maildir "/proton/Sent"  :key ?S)
+          (:maildir "/bcchr/Trash"  :key ?t)
+          (:maildir "/proton/Trash" :key ?T)))
+  
+  ;; Org links / capture from mu4e (needed for %:subject, %:fromname, %a)
+  (require 'mu4e-org nil t)
+  
+  ;; Capture actions
+  ;; taken from https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org
+  (defun efs/capture-mail-todo (msg)
+    (interactive)
+    (call-interactively 'org-store-link)
+    (org-capture nil "mt"))
+  
+  (defun efs/capture-mail-tododeadline (msg)
+    (interactive)
+    (call-interactively 'org-store-link)
+    (org-capture nil "md"))
+  
+  (add-to-list 'mu4e-headers-actions '("todo" . efs/capture-mail-todo) t)
+  (add-to-list 'mu4e-view-actions '("todo" . efs/capture-mail-todo) t)
+  (add-to-list 'mu4e-view-actions '("deadline" . efs/capture-mail-tododeadline) t)
+  (add-to-list 'mu4e-headers-actions '("deadline" . efs/capture-mail-tododeadline) t)
+
+    ;; Context switching
+    (setq mu4e-context-policy 'pick-first
+          mu4e-compose-context-policy 'ask)
+    
+    ;; Use the gnus message view engine, which enables iCal support.
+    (setq mu4e-view-use-gnus t)
+    (require 'mu4e-icalendar)
+    (mu4e-icalendar-setup)
+    
+    ;; Org integration for calendar invites.
+    ;; **IMPORTANT**: the file and headline must exist in todo.org!
+    (setq gnus-icalendar-org-capture-file (concat org-directory "todo.org"))
+    (setq gnus-icalendar-org-capture-headline '("Calendar"))
+    (gnus-icalendar-org-setup)
+    
+    ;; Write in org, send as HTML
+    (add-hook 'message-send-hook 'org-mime-htmlize)
+    
+    (defun my-do-compose-stuff ()
+      "My settings for message composition."
+      (set-fill-column 72)
+      (flyspell-mode))
+    (add-hook 'mu4e-compose-mode-hook #'my-do-compose-stuff))
+
+  ;; Email signature
+  (defun my-insert-signature ()
+    "Insert my standard email signature."
+    (interactive)
+    (insert "Cheers,\n\nAlex W.\n\n"))
+
+  ;; "No new students" reply, followed by signature
+  (defun my-insert-no-students-response ()
+    "Insert a polite refusal for new students, followed by my signature."
+    (interactive)
+    (insert "Thank you for reaching out. Unfortunately, I am not taking on any new students at the moment. \n\nBest of luck with your academic pursuits.\n\n")
+    (my-insert-signature))
+
+  (with-eval-after-load 'message
+    (define-key message-mode-map (kbd "C-c s") #'my-insert-signature)
+    (define-key message-mode-map (kbd "C-c n") #'my-insert-no-students-response))
+       
+#+end_src
+
+* Music
+
+Subsonic (needs `mpv' installed)
+
+#+begin_src emacs-lisp
+  (use-package subsonic
+    :commands subsonic
+    :bind (("<f6>"  . subsonic)
+           ("<f7>"  . subsonic-toggle-playing)
+           ("<f8>"  . subsonic-skip-track)
+           ("<f9>"  . subsonic-prev-track)
+           ("<f10>" . subsonic-toggle-playlist))
+    :custom
+    (subsonic-host "192.168.0.103:4533")
+    (subsonic-enable-art t)
+    (subsonic-ssl nil)
+    (subsonic-scrobble-plays t))
+#+end_src
+
+* Epub reading
+
+#+begin_src emacs-lisp
+  (use-package nov
+    :mode ("\\.epub\\'" . nov-mode))
+#+end_src
+
+* AI stuff
+
+#+begin_src emacs-lisp
+  (use-package gptel
+    :config
+    ;; Create the Gemini backend, reading the key from authinfo
+    (setq gptel-backend
+          (gptel-make-gemini "Gemini"
+            :key #'gptel-api-key-from-auth-source
+            :stream t)))
+
+  ;; Set default model
+  (setq gptel-model 'gemini-2.5-flash)
+  (setq gptel-default-mode 'org-mode)
+#+end_src
+
+* Smart  parentheses
+
+#+begin_src emacs-lisp
+  (use-package smartparens
+    :config
+    (require 'smartparens-config)
+    (smartparens-global-mode 1)
+    (show-smartparens-global-mode 1))
+#+end_src
+
+* Minimap
+
+#+begin_src emacs-lisp
+  (use-package minimap
+    :config
+    ;; Fix for Quarto / Polymode buffers:
+    ;; Force the minimap to always track the base (parent) buffer
+    (advice-add 'minimap-get-buffer :around
+                (lambda (orig-fun &rest args)
+                  (let ((buf (apply orig-fun args)))
+                    (if (and buf (buffer-base-buffer buf))
+                        (buffer-base-buffer buf)
+                      buf)))))
+  (setq minimap-window-location 'right) ; Put it on the right side
+  (setq minimap-update-delay 0.05)      ; Make scrolling responsive
+  (setq minimap-width-fraction 0.15)    ; Take up 15% of the window width
+  (with-eval-after-load 'minimap
+    (add-to-list 'minimap-major-modes 'markdown-mode))
+#+end_src
+
+* 'TODO
+
+#+begin_src emacs-lisp
+  (use-package hl-todo
+    :custom
+    (hl-todo-keyword-faces
+     '(("TODO"  . (:foreground "black" :background "#7FDBFF" :weight bold))
+       ("FIXME" . (:foreground "black" :background "#ff6666" :weight bold))
+       ("NOTE"  . (:foreground "black" :background "#66ff66" :weight bold))
+       ("HACK"  . (:foreground "black" :background "#cc66ff" :weight bold))))
+    :config
+    (global-hl-todo-mode))
+
+  (global-set-key (kbd "C-c t n") 'hl-todo-next)
+  (global-set-key (kbd "C-c t p") 'hl-todo-previous)
+#+end_src
+
+* Python
+
+install python language server on your machine: npx install -g pyright
+
+(use-package python-mode) ;; don't need?
+
+Python REPL:
+
+M-x run-python
+
+#+begin_src emacs-lisp
+  (setq python-shell-interpreter "python3")
+
+  (use-package python
+    :init
+    ;; cleanly intercepts and strips those out, keeping the shell output clean
+    (defun python-comint-filter (output)
+      "Filter out '__PYTHON_EL_' when sending region to inferior Python shell.
+  See also: https://stackoverflow.com/questions/75103221/emacs-remove-python-el-eval-message"
+      (let* ((regexp "^.*__PYTHON_EL_\\(.*\\)\\(.*\\)[[:space:]]*$")
+             (lines (split-string output "\n"))
+             (filtered-lines (cl-remove-if (lambda (line)
+                                             (or (string-match-p regexp line)
+                                                 (string-match-p "^\\s-*$" line))) 
+                                           lines)))
+
+        (if (equal (length lines) (length filtered-lines))
+            output
+          (mapconcat 'identity filtered-lines "\n"))))
+    :hook
+    (comint-preoutput-filter-functions . python-comint-filter)
+    :custom
+    (python-indent-guess-indent-offset-verbose nil)
+    (python-shell-completion-native-enable nil))
+#+end_src
+
+** Virtual environments support
+
+#+begin_src emacs-lisp
+  ;; pet automatically detects project-local virtual environments
+  (use-package pet 
+    :hook
+    (python-base-mode . dn/python-pet-hook)
+    :init
+    (defun dn/python-pet-hook ()
+      "Activate pet mode, and set the local variables to identify the correct executables."
+      (pet-mode)
+      (setq-local pyvenv-activate (pet-virtualenv-root))
+      (setq-local python-shell-interpreter (pet-executable-find "python"))
+      (setq-local python-shell-interpreter-args "-i")
+      (when-let ((black-executable (pet-executable-find "black")))
+        (setq-local python-black-command black-executable))))
+
+  ;; Virtual environments - redundant b/c of pet?
+  (use-package pyvenv
+    :config
+    (pyvenv-mode))
+#+end_src
+
+** Jupyter
+
+M-x jupyter-run-repl
+
+#+begin_src emacs-lisp
+  (use-package jupyter)
+#+end_src
+
+** Eglot support
+
+#+begin_src emacs-lisp
+  ;; hooks Eglot into both python-mode and python-ts-mode, ensures it uses Pyright, and configures auto-start behavior:
+  ;; (use-package eglot
+  ;;   :ensure nil ; Built-in as of Emacs 29+
+  ;;   :hook
+  ;;   ((python-mode . eglot-ensure)
+  ;;    (python-ts-mode . eglot-ensure))
+  ;;   :custom
+  ;;   ;; Prevent Eglot from popping up massive help windows automatically
+  ;;   (eglot-auto-display-help-buffer nil)
+  ;;   ;; Faster update intervals for live error checking
+  ;;   (eglot-send-changes-idle-time 0.5)
+  ;;   :config
+  ;;   ;; Explicitly map python modes to pyright if not auto-detected
+  ;;   (add-to-list 'eglot-server-programs
+  ;;                '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))))
+#+end_src
+
+* R and stats
+
+#+begin_src emacs-lisp
+  (use-package ess)
+#+end_src
+
+** R Markdown
+
+#+begin_src emacs-lisp
+  (use-package poly-R
+    :mode ("\\.[rR]md\\'" . poly-gfm+r-mode))
+#+end_src
+
+* Markdown
+
+#+begin_src emacs-lisp
+  (use-package markdown-mode
+    :mode ("\\.qmd\\'" . markdown-mode))
+
+  (add-hook 'markdown-mode-hook #'visual-line-mode)
+
+  (with-eval-after-load 'markdown-mode
+    (set-face-attribute 'markdown-header-face-1 nil
+                        :height 1.6
+                        :weight 'bold)
+
+    (set-face-attribute 'markdown-header-face-2 nil
+                        :height 1.45
+                        :weight 'bold)
+
+    (set-face-attribute 'markdown-header-face-3 nil
+                        :height 1.3
+                        :weight 'bold)
+
+    (set-face-attribute 'markdown-header-face-4 nil
+                        :height 1.15
+                        :weight 'bold))
+#+end_src
+
+** Images, face, math
+
+#+begin_src emacs-lisp
+  ;; max image size
+  (setq markdown-max-image-size '(500 . 300))
+
+  ;; Markdown face definitions
+  (defface my-markdown-citation-face
+    '((t (:foreground "#F54927"
+                      :weight bold)))
+    "Face used for Pandoc citations.")
+  (font-lock-add-keywords
+   'markdown-mode
+   '(("\\(\\[@[^]]+\\]\\)"
+      1 'my-markdown-citation-face t)))
+
+  ;; Math preview
+  (use-package math-preview)
+  ;; (add-hook 'markdown-mode-hook
+  ;;           (lambda ()
+  ;;             (when (and buffer-file-name
+  ;;                        (string-match-p "\\.qmd\\'" buffer-file-name))
+  ;;               (math-preview-all))))
+#+end_src
+
+* Poly
+
+#+begin_src emacs-lisp
+  (use-package polymode)
+  (use-package poly-markdown)
+#+end_src
+
+* Quarto
+
+#+begin_src emacs-lisp
+  ;; https://gist.github.com/fast-90/3d7ce3252fff59b0f6d6d1bcadcf4938
+  (defun my/count-words-qmd ()
+    "Count words in a Quarto buffer, excluding YAML front matter,
+  markdown tables, images, lines starting with ':', inline
+  citations (@), everything between ':::' and ':::', and everything
+  from '# References {.unnumbered}' onward. If a region is active,
+  count only within it."
+    (interactive)
+    (let ((start (cond
+                  ((use-region-p) (region-beginning))
+                  ((save-excursion
+                     (goto-char (point-min))
+                     (looking-at "---"))
+                   (save-excursion
+                     (goto-char (point-min))
+                     (forward-line 1)
+                     (if (re-search-forward "^---" nil t)
+                         (line-beginning-position 2)
+                       (point-min))))
+                  (t (point-min))))
+          (end (if (use-region-p) (region-end) (point-max))))
+      (let ((count 0)
+            (done nil))
+        (save-excursion
+          (goto-char start)
+          (while (and (not done) (< (point) end))
+            (cond
+             ;; 1. Check for ::: block start and skip content until next :::
+             ((looking-at "^:::")
+              ;; Move past the opening ::: line
+              (forward-line 1)
+              (let ((next-triple-colon (re-search-forward "^:::" end t)))
+                (if next-triple-colon
+                    ;; Found closing :::, move past its line
+                    (goto-char (line-end-position))
+                  ;; No closing ::: found in region, skip till end of region
+                  (setq done t))))
+
+             ((looking-at "^\\$\\$")
+              ;; Move past the opening $$ line
+              (forward-line 1)
+              (let ((double-money (re-search-forward "^\\$\\$" end t)))
+                (if double-money
+                    ;; Found closing $$, move past its line
+                    (goto-char (line-end-position))
+                  ;; No closing $$ found in region, skip till end of region
+                  (setq done t))))
+
+             ;; 2. Check for # References {.unnumbered} and stop
+             ((and (not (use-region-p))
+                   (looking-at "^# References {.unnumbered}"))
+              (setq done t))
+
+             ;; 3. Check for other line-start exclusions (tables, images, generic :, html/divs)
+             ((looking-at (rx (or (: bol "|")
+                                  (: bol "![")
+                                  (: bol ":")
+                                  (: bol "<")
+                                  (: bol "{"))))
+              (forward-line 1))
+
+             ;; 4. If none of the above, process the line for word count
+             (t
+              (let* ((line-end (min (line-beginning-position 2) end))
+                     (line (buffer-substring-no-properties (point) line-end))
+                     ;; Remove inline citations like [@author2020] or @author2020
+                     (cleaned (replace-regexp-in-string "\\[\\?@[^]]+\\]\\|@[[:alnum:]_-]+" "" line)))
+                (with-temp-buffer
+                  (insert cleaned)
+                  (setq count (+ count (count-words-region (point-min) (point-max)))))
+                (goto-char line-end))))))
+        (message "Word count: %d" count))))
+
+  (use-package quarto-mode
+    :bind (:map poly-quarto-mode-map
+                ("C-c q p" . quarto-preview)
+                ("C-c q w" . my/count-words-qmd)))
+#+end_src
+
+* Citations
+
+Works beautifully with BetterBibTeX + Zotero.
+
+#+begin_src emacs-lisp
+  (use-package citar
+    :custom
+    (citar-bibliography
+     '("~/references/references.bib")))
+
+  ;; Insert citations with C-c ]
+  (with-eval-after-load 'markdown-mode
+    (define-key markdown-mode-map
+                (kbd "C-c ]")
+                #'citar-insert-citation))
+
+
+  (defun my/qmd-bibliography ()
+    "Extract bibliography paths from Quarto YAML front matter."
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^bibliography:[ \t]*\\(.*\\)$" nil t)
+        (let ((raw (match-string 1)))
+          (split-string raw "[, ]+" t)))))
+  (defun my/setup-citar-from-qmd-yaml ()
+    "Set `citar-bibliography` from QMD YAML front matter."
+    (when (and buffer-file-name
+               (string-match-p "\\.qmd\\'" buffer-file-name))
+      (setq-local citar-bibliography (my/qmd-bibliography))))
+  (add-hook 'find-file-hook #'my/setup-citar-from-qmd-yaml)
+  (add-hook 'after-save-hook #'my/setup-citar-from-qmd-yaml)
+
+  ;; Optional notes directory
+  (setq citar-library-paths
+        '("~/papers"))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; BibTeX mode improvements
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (use-package bibtex)
+#+end_src
+
+* LaTeX
+
+#+begin_src emacs-lisp
+  (use-package auctex)
+
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+#+end_src
+
+* PDF Viewing
+
+#+begin_src emacs-lisp
+  (use-package pdf-tools
+    :config
+    (pdf-tools-install))
+#+end_src
+
+* YAML
+
+#+begin_src emacs-lisp
+  (use-package yaml-mode)
+#+end_src
+
+* JSON
+
+#+begin_src emacs-lisp
+  (use-package json-mode)
+#+end_src
+
+* Weather
+
+#+begin_src emacs-lisp
+  (use-package sunshine
+    :straight (sunshine :host github :repo "aaronbieber/sunshine.el")
+    :bind (("C-c W" . sunshine-forecast))
+    :config
+    (setq sunshine-location "Vancouver,CA"
+          sunshine-show-icons t
+          sunshine-units 'metric
+          sunshine-appid (auth-source-pick-first-password
+                          :host "api.openweathermap.org"
+                          :user "apikey"))
+
+    (add-to-list 'display-buffer-alist
+                 '("\\*Sunshine\\*"
+                   (display-buffer-at-bottom)
+                   (window-height . 0.3)))
+
+    (defun my/sunshine-build-simple-forecast (forecast)
+      "Like `sunshine-build-simple-forecast', but with extra fields."
+      (let* ((citylist (cdr (assq 'city forecast)))
+             (city (cdr (assq 'name citylist)))
+             (country (cdr (assq 'country citylist)))
+             (sym (sunshine-units-symbol))
+             (speed-unit (if (eq sunshine-units 'metric) "m/s" "mph")))
+        (list
+         (cons 'location (concat city ", " country))
+         (cons 'days
+               (cl-loop
+                for day across (cdr (assq 'list forecast)) collect
+                (let* ((main (cdr (assq 'main day)))
+                       (weather (elt (cdr (assq 'weather day)) 0))
+                       (wind (cdr (assq 'wind day)))
+                       (pop (cdr (assq 'pop day)))
+                       (rain (cdr (assq '3h (cdr (assq 'rain day))))))
+                  (list
+                   (cons 'date (format-time-string
+                                "%a %b %e, %l %p"
+                                (seconds-to-time (cdr (assq 'dt day)))))
+                   (cons 'desc (capitalize (cdr (assq 'description weather))))
+                   (cons 'icon (cdr (assq 'icon weather)))
+                   (cons 'temp
+                         (list
+                          (cons 'min (format "%s %s" (round (cdr (assq 'temp_min main))) sym))
+                          (cons 'max (format "%s %s" (round (cdr (assq 'temp_max main))) sym))))
+                   (cons 'feels (format "%s %s" (round (cdr (assq 'feels_like main))) sym))
+                   (cons 'humidity (cdr (assq 'humidity main)))
+                   (cons 'wind (format "%s %s" (round (or (cdr (assq 'speed wind)) 0)) speed-unit))
+                   (cons 'pop (round (* 100 (or pop 0))))
+                   (cons 'rain (if rain (format "%s mm" rain) "-")))))))))
+
+    (defun my/sunshine-pivot-forecast-rows (forecast)
+      "Like `sunshine-pivot-forecast-rows', but with extra rows."
+      (cl-loop for day in (cdr (assq 'days forecast))
+               collect (cdr (assq 'date day)) into dates
+               collect (cdr (assq 'icon day)) into icons
+               collect (cdr (assq 'desc day)) into descs
+               collect (format "High: %s" (cdr (assq 'max (cdr (assq 'temp day))))) into highs
+               collect (format "Low:  %s" (cdr (assq 'min (cdr (assq 'temp day))))) into lows
+               collect (format "Feels: %s" (cdr (assq 'feels day))) into feels
+               collect (format "Humidity: %s%%" (cdr (assq 'humidity day))) into humids
+               collect (format "Wind: %s" (cdr (assq 'wind day))) into winds
+               collect (format "Precip: %s%%" (cdr (assq 'pop day))) into pops
+               collect (format "Rain: %s" (cdr (assq 'rain day))) into rains
+               finally (return (list (cons "icons" icons)
+                                     (cons "dates" dates)
+                                     (cons "descs" descs)
+                                     (cons "highs" highs)
+                                     (cons "lows" lows)
+                                     (cons "feels" feels)
+                                     (cons "humids" humids)
+                                     (cons "winds" winds)
+                                     (cons "pops" pops)
+                                     (cons "rains" rains)))))
+
+    (advice-add 'sunshine-build-simple-forecast :override #'my/sunshine-build-simple-forecast)
+    (advice-add 'sunshine-pivot-forecast-rows :override #'my/sunshine-pivot-forecast-rows))
+#+end_src
+
+
+  ;; ## External software you'll want installed
+  ;; ### Python
+  ;; ```bash
+  ;; pip install jupyter jupyterlab python-lsp-server
+  ;; ```
+  ;; ### R
+  ;; ```r
+  ;; install.packages(c(
+  ;;   "languageserver",
+  ;;   "tidyverse"
+  ;; ))
+  ;; ```
+  ;; ### Quarto
+  ;; ```bash
+  ;; sudo apt install quarto
+  ;; ```
+  ;; ### Ripgrep
+  ;; ```bash
+  ;; sudo apt install ripgrep
+  ;; ```
+  ;; ### Aspell
+  ;; ```bash
+  ;; sudo apt install aspell
+  ;; ```
+  ;; ### BetterBibTeX
+  ;; Use Zotero with BetterBibTeX and continuously export:
+  ;; ```text
+  ;; references.bib
+  ;; ```
