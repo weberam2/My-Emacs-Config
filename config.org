@@ -603,6 +603,9 @@ M-$ check spelling of last word
   ;; Your GTD agenda uses NEXT, so uncomment/adjust if you rely on it globally:
   ;; (setq org-todo-keywords
   ;;       '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "|" "DONE(d)" "KILL(k)")))
+
+  (use-package htmlize
+  :ensure t)
 #+end_src
 
 ** Org-roam (+ UI)
@@ -1217,10 +1220,29 @@ M-x run-python
 
 ** Jupyter
 
-M-x jupyter-run-repl
+Steps to work with an ipynb file:
+
+- ~M-x cd~ : go to your notebook directory
+- ~M-x pyvenv-activate~ : point to your .venv  dir
+- ~M-x jupyter-run-repl~ : start a jupyter repl (you can close it after)
+- ~C-x C-f~ : open your .ipynb file
+- ~M-x jupyter-repl-associate-buffer~ : associate with your jupyter repl
 
 #+begin_src emacs-lisp
   (use-package jupyter)
+#+end_src
+
+** Code-cells
+
+#+begin_src emacs-lisp
+  (use-package code-cells
+    :hook (python-base-mode . code-cells-mode-maybe)
+    :config
+    (let ((map code-cells-mode-map))
+      (define-key map "n" (code-cells-speed-key 'code-cells-forward-cell))
+      (define-key map "p" (code-cells-speed-key 'code-cells-backward-cell))
+      (define-key map "e" (code-cells-speed-key 'code-cells-eval))
+      (define-key map (kbd "TAB") (code-cells-speed-key 'outline-cycle))))
 #+end_src
 
 ** Eglot support
@@ -1548,32 +1570,34 @@ Works beautifully with BetterBibTeX + Zotero.
 #+end_src
 
 
-  ;; ## External software you'll want installed
-  ;; ### Python
-  ;; ```bash
-  ;; pip install jupyter jupyterlab python-lsp-server
-  ;; ```
-  ;; ### R
-  ;; ```r
-  ;; install.packages(c(
-  ;;   "languageserver",
-  ;;   "tidyverse"
-  ;; ))
-  ;; ```
-  ;; ### Quarto
-  ;; ```bash
-  ;; sudo apt install quarto
-  ;; ```
-  ;; ### Ripgrep
-  ;; ```bash
-  ;; sudo apt install ripgrep
-  ;; ```
-  ;; ### Aspell
-  ;; ```bash
-  ;; sudo apt install aspell
-  ;; ```
-  ;; ### BetterBibTeX
-  ;; Use Zotero with BetterBibTeX and continuously export:
-  ;; ```text
-  ;; references.bib
-  ;; ```
+* External software you'll want installed
+** Python
+#+begin_src
+pip install jupyter jupyterlab python-lsp-server
+#+end_src
+
+** R
+#+begin_src
+install.packages(c(
+  "languageserver",
+  "tidyverse"
+))  
+#+end_src
+
+** Quarto
+
+#+begin_src 
+sudo apt install quarto  
+#+end_src
+
+** Ripgrep
+
+#+begin_src 
+sudo apt install ripgrep  
+#+end_src
+
+** Aspell
+
+#+begin_src 
+sudo apt install aspell  
+#+end_src
