@@ -194,6 +194,15 @@
     (which-key-mode))
 #+end_src
 
+* Better dired
+
+#+begin_src emacs-lisp
+  (use-package diredfl
+    :ensure t
+    :hook (dired-mode . diredfl-mode))
+  (global-font-lock-mode 1)
+#+end_src
+
 * Rainbow delimiters
 
 #+begin_src emacs-lisp
