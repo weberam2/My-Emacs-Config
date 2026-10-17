@@ -1099,6 +1099,18 @@ Subsonic (needs `mpv' installed)
 
 * AI stuff
 
+- ~M-x gptel~ : start a chat
+- ~C-c Enter~ : submit
+- ~C-u C-c Enter~ : menu for preferences
+
+[[https://github.com/karthink/gptel][link]]
+
+Find what models you can use with:
+
+~curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY"curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY"~
+
+Look for ~generateContent~
+
 #+begin_src emacs-lisp
   (use-package gptel
     :config
@@ -1106,7 +1118,9 @@ Subsonic (needs `mpv' installed)
     (setq gptel-backend
           (gptel-make-gemini "Gemini"
             :key #'gptel-api-key-from-auth-source
-            :stream t)))
+            :stream t))
+    ;; Enable visual-line-mode automatically in gptel buffers
+    (add-hook 'gptel-mode-hook #'visual-line-mode))
 
   ;; Set default model
   (setq gptel-model 'gemini-2.5-flash)
