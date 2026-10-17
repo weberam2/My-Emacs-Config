@@ -14,16 +14,11 @@
 * General appearance
 
 #+begin_src emacs-lisp
-  (setopt inhibit-splash-screen t)
   (setq inhibit-startup-screen t) ;; disable default splash screen
-  (setq-default
-   display-line-numbers-type 'relative) ;; relative line numbers
-  (global-display-line-numbers-mode) ;; line numbers for all modes
-  (add-hook 'pdf-view-mode-hook
-            (lambda () (setq-local display-line-numbers nil))) ;; disable line numbers for this mode
-  (add-hook 'org-timegrid-mode-hook
-            (lambda () (display-line-numbers-mode -1))) ;; disable line numbers for this mode
-  (column-number-mode) ;; show column number in mode line
+  (setq-default display-line-numbers-type 'relative)
+  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+  (add-hook 'text-mode-hook #'display-line-numbers-mode)
+  (column-number-mode 1) ;; show column number in mode line
   (setq inhibit-startup-echo-area-message (user-login-name)) ;; Silence stupid startup message
   (setopt display-time-default-load-average nil) ; this information is useless for most
 
