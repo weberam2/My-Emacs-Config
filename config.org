@@ -11,6 +11,20 @@
 
 #+end_src
 
+* macOS-specific setup
+
+#+begin_src emacs-lisp
+  (when (eq system-type 'darwin)
+    (use-package exec-path-from-shell
+      :config
+      (exec-path-from-shell-initialize))
+
+    (setenv "PKG_CONFIG_PATH"
+            (concat "/opt/homebrew/lib/pkgconfig:"
+                    "/opt/homebrew/opt/poppler/lib/pkgconfig:"
+                    (or (getenv "PKG_CONFIG_PATH") ""))))
+#+end_src
+
 * General appearance
 
 #+begin_src emacs-lisp
