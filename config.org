@@ -2,16 +2,6 @@
 #+author: Alexander Weber
 #+PROPERTY: header-args:emacs-lisp :tangle yes :results silent
 
-* Operating system specific
-
-#+begin_src emacs-lisp
-(when (eq system-type 'darwin)
-  (setq mac-option-modifier 'meta
-        mac-command-modifier nil
-        ns-option-modifier 'meta
-        ns-command-modifier nil))
-#+end_src
-
 * Basic settings for quick startup and convenience
 
 #+begin_src emacs-lisp
