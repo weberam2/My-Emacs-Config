@@ -753,11 +753,19 @@ Timestamp-based attachment folders instead of random IDs.
 
 ** Sync org and gcal
 
-if you need to force a reset:
+*** Notes:
 
+- if you need to force a reset:
+
+#+begin_example
 (progn
 (setq org-gcal--sync-tokens nil)
 (org-gcal-fetch))
+#+end_example
+
+- To bypass plstore:
+
+[[https://github.com/emacsmirror/org-gcal#note][emacsmirror/org-gcal]] instructions
 
 #+begin_src emacs-lisp
   (use-package org-gcal
