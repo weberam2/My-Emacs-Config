@@ -196,6 +196,7 @@
     (insert (format-time-string "%Y-%m-%d")))
 
   (global-set-key (kbd "C-c d") #'insert-current-date)
+  (global-set-key (kbd "C-c f") #'find-file-at-point)
 #+end_src
 
 * Helpful keybinding hints
