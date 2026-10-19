@@ -211,11 +211,27 @@
 
 * Better dired
 
+** Nice colors
+
 #+begin_src emacs-lisp
   (use-package diredfl
     :ensure t
     :hook (dired-mode . diredfl-mode))
   (global-font-lock-mode 1)
+#+end_src
+
+** Image preview
+
+Use Alt-Enter to toggle preview on/off
+
+#+begin_src emacs-lisp
+(use-package dired-preview
+  :ensure t
+  :custom
+  (dired-preview-delay 0.1)                  ; seconds before preview appears
+  (dired-preview-max-size (* 20 1024 1024))  ; skip files bigger than 20 MB
+  :bind (:map dired-mode-map
+         ("M-RET" . dired-preview-mode)))
 #+end_src
 
 * Rainbow delimiters
