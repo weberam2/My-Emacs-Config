@@ -116,20 +116,28 @@
 
 * Passwords
 
+** TODO fix this so it doesn't ask for the id...
+
 #+begin_src emacs-lisp
   (require 'auth-source)
   (setq auth-sources '("~/.authinfo.gpg"))
 
-  ;; Set your default GPG key ID for all EasyPG / EPA operations
-  (setq epa-file-encrypt-to '("D377615D1BC24A0D"))  ; Replace with your key ID
-  ;; Avoid getting prompted all the time for the password to your plstore
+  ;; Make sure gpg-agent gets used non-interactively via Emacs
+  (setq epg-pinentry-mode 'loopback)
+
+  ;; Use the long key ID / fingerprint, consistently
+  (setq epa-file-encrypt-to '("D377615D1BC24A0D"))
+
+  (require 'plstore)
+  ;; Flat string or flat list, NOT a nested list
+  (setq plstore-encrypt-to "D377615D1BC24A0D")
+
+  ;; Don't ask for keys; use plstore-encrypt-to
+  (setq plstore-select-keys nil)
+
+  ;; Only relevant for symmetric encryption; you can drop it
+  ;; once asymmetric is working
   (setq plstore-cache-passphrase-for-symmetric-encryption t)
-  ;; Disable key selection prompting completely
-  (setq epa-file-select-keys nil)
-  ;; Ensure plstore also uses non-interactive key selection
-  (with-eval-after-load 'plstore
-    (setq plstore-select-keys nil
-          plstore-encrypt-to "D377615D1BC24A0D"))
 #+end_src
 
 * Completion framework
