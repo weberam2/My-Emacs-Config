@@ -1006,13 +1006,13 @@ ls /usr/local/share/emacs/site-lisp/mu4e
           mu4e-change-filenames-when-moving t
           mu4e-headers-show-threads nil
           mu4e-headers-include-related nil
-          message-signature-file "~/.mail/.signature"
+;;          message-signature-file "~/.mail/.signature"
           message-send-mail-function 'smtpmail-send-it
           gnutls-trustfiles
           (append gnutls-trustfiles
                   '("~/.config/protonmail/cert.pem")))
 
-       (setq mu4e-contexts
+    (setq mu4e-contexts
           (list
            ;; BCCHR
            (make-mu4e-context
@@ -1031,76 +1031,95 @@ ls /usr/local/share/emacs/site-lisp/mu4e
                     (smtpmail-stream-type . plain)
                     (smtpmail-smtp-service . 1026)))
            ;; ProtonMail
+           ;; (make-mu4e-context
+           ;;  :name "ProtonMail"
+           ;;  :match-func
+           ;;  (lambda (msg)
+           ;;    (when msg
+           ;;      (string-prefix-p "/proton" (mu4e-message-field msg :maildir))))
+           ;;  :vars '((user-full-name . "Alexander Weber")
+           ;;          (user-mail-address . "weberam2@proton.me")
+           ;;          (mu4e-sent-folder . "/proton/Sent")
+           ;;          (mu4e-drafts-folder . "/proton/Drafts")
+           ;;          (mu4e-trash-folder . "/proton/Trash")
+           ;;          (mu4e-refile-folder . "/proton/Archive")
+           ;;          (smtpmail-smtp-server . "127.0.0.1")
+           ;;          (smtpmail-smtp-user . "weberam2@proton.me")
+           ;;          (smtpmail-stream-type . starttls)
+           ;;          (smtpmail-smtp-service . 1025)))))
+
+           ;; Mailbox.org
            (make-mu4e-context
-            :name "ProtonMail"
+            :name "Mailbox"
             :match-func
             (lambda (msg)
               (when msg
-                (string-prefix-p "/proton" (mu4e-message-field msg :maildir))))
+                (string-prefix-p "/mailbox" (mu4e-message-field msg :maildir))))
             :vars '((user-full-name . "Alexander Weber")
-                    (user-mail-address . "weberam2@proton.me")
-                    (mu4e-sent-folder . "/proton/Sent")
-                    (mu4e-drafts-folder . "/proton/Drafts")
-                    (mu4e-trash-folder . "/proton/Trash")
-                    (mu4e-refile-folder . "/proton/Archive")
-                    (smtpmail-smtp-server . "127.0.0.1")
-                    (smtpmail-smtp-user . "weberam2@proton.me")
-                    (smtpmail-stream-type . starttls)
-                    (smtpmail-smtp-service . 1025)))))
+                    (user-mail-address . "weberam2@mailbox.org")
+                    (mu4e-sent-folder . "/mailbox/Sent")
+                    (mu4e-drafts-folder . "/mailbox/Drafts")
+                    (mu4e-trash-folder . "/mailbox/Trash")
+                    (mu4e-refile-folder . "/mailbox/Archive")
+                    (smtpmail-smtp-server . "smtp.mailbox.org")
+                    (smtpmail-smtp-user . "weberam2@mailbox.org")
+                    (smtpmail-stream-type . ssl)
+                    (smtpmail-smtp-service . 465)))))
 
-         (setq mu4e-bookmarks
-        '((:name "BCCHR Inbox" :query "maildir:/bcchr/Inbox AND flag:unread" :key ?b)
-          (:name "ProtonMail Inbox" :query "maildir:/proton/Inbox AND flag:unread" :key ?p)
-          (:name "Gmail archive" :query "maildir:\"/gmail/[Gmail]/All Mail\"" :key ?g)
-          (:name "All Unread" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND flag:unread" :key ?u)
-          (:name "Today's messages" :query "(maildir:/bcchr/Inbox OR maildir:/proton/Inbox) AND date:today..now" :key ?t)))
-  
-  (setq mu4e-maildir-shortcuts
-        '((:maildir "/bcchr/Inbox"  :key ?i)
-          (:maildir "/proton/Inbox" :key ?I)
-          (:maildir "/bcchr/Sent"   :key ?s)
-          (:maildir "/proton/Sent"  :key ?S)
-          (:maildir "/bcchr/Trash"  :key ?t)
-          (:maildir "/proton/Trash" :key ?T)))
-  
-  ;; Org links / capture from mu4e (needed for %:subject, %:fromname, %a)
-  (require 'mu4e-org nil t)
-  
-  ;; Capture actions
-  ;; taken from https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org
-  (defun efs/capture-mail-todo (msg)
-    (interactive)
-    (call-interactively 'org-store-link)
-    (org-capture nil "mt"))
-  
-  (defun efs/capture-mail-tododeadline (msg)
-    (interactive)
-    (call-interactively 'org-store-link)
-    (org-capture nil "md"))
-  
-  (add-to-list 'mu4e-headers-actions '("todo" . efs/capture-mail-todo) t)
-  (add-to-list 'mu4e-view-actions '("todo" . efs/capture-mail-todo) t)
-  (add-to-list 'mu4e-view-actions '("deadline" . efs/capture-mail-tododeadline) t)
-  (add-to-list 'mu4e-headers-actions '("deadline" . efs/capture-mail-tododeadline) t)
+    (setq mu4e-bookmarks
+          '((:name "BCCHR Inbox" :query "maildir:/bcchr/Inbox AND flag:unread" :key ?b)
+            (:name "Mailbox Inbox" :query "maildir:/mailbox/INBOX" :key ?m)
+            (:name "ProtonMail Inbox" :query "maildir:/proton/Inbox" :key ?p)
+            (:name "Gmail archive" :query "maildir:\"/gmail/[Gmail]/All Mail\"" :key ?g)
+            (:name "All Unread" :query "(maildir:/bcchr/Inbox OR maildir:/mailbox/INBOX) AND flag:unread" :key ?u)
+            (:name "Today's messages" :query "(maildir:/bcchr/Inbox OR maildir:/mailbox/INBOX) AND date:today..now" :key ?t)))
+
+    (setq mu4e-maildir-shortcuts
+          '((:maildir "/bcchr/Inbox"  :key ?i)
+            (:maildir "/mailbox/Inbox" :key ?I)
+            (:maildir "/bcchr/Sent"   :key ?s)
+            (:maildir "/mailbox/Sent"  :key ?S)
+            (:maildir "/bcchr/Trash"  :key ?t)
+            (:maildir "/mailbox/Trash" :key ?T)))
+
+    ;; Org links / capture from mu4e (needed for %:subject, %:fromname, %a)
+    (require 'mu4e-org nil t)
+
+    ;; Capture actions
+    ;; taken from https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org
+    (defun efs/capture-mail-todo (msg)
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "mt"))
+
+    (defun efs/capture-mail-tododeadline (msg)
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "md"))
+
+    (add-to-list 'mu4e-headers-actions '("todo" . efs/capture-mail-todo) t)
+    (add-to-list 'mu4e-view-actions '("todo" . efs/capture-mail-todo) t)
+    (add-to-list 'mu4e-view-actions '("deadline" . efs/capture-mail-tododeadline) t)
+    (add-to-list 'mu4e-headers-actions '("deadline" . efs/capture-mail-tododeadline) t)
 
     ;; Context switching
     (setq mu4e-context-policy 'pick-first
           mu4e-compose-context-policy 'ask)
-    
+
     ;; Use the gnus message view engine, which enables iCal support.
     (setq mu4e-view-use-gnus t)
     (require 'mu4e-icalendar)
     (mu4e-icalendar-setup)
-    
+
     ;; Org integration for calendar invites.
     ;; **IMPORTANT**: the file and headline must exist in todo.org!
     (setq gnus-icalendar-org-capture-file (concat org-directory "todo.org"))
     (setq gnus-icalendar-org-capture-headline '("Calendar"))
     (gnus-icalendar-org-setup)
-    
+
     ;; Write in org, send as HTML
     (add-hook 'message-send-hook 'org-mime-htmlize)
-    
+
     (defun my-do-compose-stuff ()
       "My settings for message composition."
       (set-fill-column 72)
@@ -1111,7 +1130,8 @@ ls /usr/local/share/emacs/site-lisp/mu4e
   (defun my-insert-signature ()
     "Insert my standard email signature."
     (interactive)
-    (insert "Cheers,\n\nAlex W.\n\n"))
+    (insert "\nCheers,\n\nAlex W.\n\n")
+    (my-insert-full-signature))
 
   ;; "No new students" reply, followed by signature
   (defun my-insert-no-students-response ()
@@ -1120,10 +1140,23 @@ ls /usr/local/share/emacs/site-lisp/mu4e
     (insert "Thank you for reaching out. Unfortunately, I am not taking on any new students at the moment. \n\nBest of luck with your academic pursuits.\n\n")
     (my-insert-signature))
 
+  ;; Signature
+  (defun my-insert-full-signature ()
+  "Insert the full org-formatted signature into the body."
+  (interactive)
+  (insert "\n"
+          "*Alexander Mark Weber*, MSc, PhD (He/Him) \\\\\n"
+          "Assistant Professor, Department of Pediatrics, Division of Neurology \\\\\n"
+          "Imaging Staff Scientist, BC Children's Hospital Research Institute \\\\\n"
+          "University of British Columbia, Vancouver, BC \\\\\n"
+          "Tel: +1 (604) 704-2576 \\\\\n"
+          "[[https://weberlab.github.io/][weberlab.github.io]] | "
+          "[[https://bsky.app/profile/weberam2.bsky.social][@weberam2.bsky.social]] | "
+          "[[https://mastodon.social/@weberam2][@weberam2@mastodon.social]]\n"))
+
   (with-eval-after-load 'message
     (define-key message-mode-map (kbd "C-c s") #'my-insert-signature)
     (define-key message-mode-map (kbd "C-c n") #'my-insert-no-students-response))
-       
 #+end_src
 
 * Music
