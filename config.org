@@ -771,6 +771,8 @@ Timestamp-based attachment folders instead of random IDs.
 
 - if you need to force a reset:
 
+First delete the stale gcal.org, family.org, and weberlab.org files
+
 #+begin_example
 (progn
 (setq org-gcal--sync-tokens nil)
@@ -783,7 +785,8 @@ Timestamp-based attachment folders instead of random IDs.
 
 #+begin_src emacs-lisp
   (use-package org-gcal
-    :init
+    :commands (org-gcal-fetch org-gcal-sync)
+    :config
     (let* ((auth (car (auth-source-search :max 1
                                           :host "google-calendar"
                                           :require '(:user :secret))))
@@ -793,7 +796,6 @@ Timestamp-based attachment folders instead of random IDs.
           (setq org-gcal-client-id client-id
                 org-gcal-client-secret client-secret)
         (message "Warning: Could not load google-calendar credentials from auth-source!")))
-    :config
     (setq org-gcal-file-alist
           '(("9cb3fa6ea68155398c47cb0d3bcc75a325bbb754adbe80d3b8dbf62970a5323f@group.calendar.google.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/family.org")
             ("weberam2@gmail.com" . "~/Dropbox/AssistantProf_BCCHRI/Zotero_Obsidian/Obsidian/org/gcal.org")
