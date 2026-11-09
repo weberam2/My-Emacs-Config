@@ -1200,19 +1200,27 @@ Find what models you can use with:
 Look for ~generateContent~
 
 #+begin_src emacs-lisp
-  (use-package gptel
-    :config
-    ;; Create the Gemini backend, reading the key from authinfo
-    (setq gptel-backend
-          (gptel-make-gemini "Gemini"
-            :key #'gptel-api-key-from-auth-source
-            :stream t))
-    ;; Enable visual-line-mode automatically in gptel buffers
-    (add-hook 'gptel-mode-hook #'visual-line-mode))
+(use-package gptel
+  :hook (gptel-mode . visual-line-mode)
+  :custom
+  (gptel-default-mode 'org-mode)
+  :config
+  ;; Create the Ollama backend (registers itself; no need to keep it in a list)
+  (gptel-make-ollama "Mistral"
+    :host "localhost:11434"
+    :models '(mistral:latest)
+    :stream t)
 
-  ;; Set default model
-  (setq gptel-model 'gemini-2.5-flash)
-  (setq gptel-default-mode 'org-mode)
+  ;; Create Gemini and make it the default backend
+  (setq gptel-backend
+        (gptel-make-gemini "Gemini"
+          :key (lambda ()
+                 (gptel-api-key-from-auth-source
+                  "generativelanguage.googleapis.com"))
+          :stream t))
+
+  ;;(setq gptel-model 'gemini-2.5-flash))
+  (setq gptel-model 'mistral:latest))
 #+end_src
 
 * Smart  parentheses
